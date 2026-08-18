@@ -1,0 +1,7 @@
+streamlit>=1.42
+pandas
+numpy
+requests
+plotly
+psycopg[binary]
+python-dotenv
