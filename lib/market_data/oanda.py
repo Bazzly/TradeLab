@@ -1,4 +1,4 @@
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import requests
 
@@ -12,11 +12,12 @@ def _to_oanda_timestamp(dt: datetime) -> str:
     appending "Z" to `dt.isoformat()` is only safe for a *naive* datetime —
     an aware one already ends in an offset like "+00:00", producing an
     invalid double-marked string ("...+00:00Z"). Callers now consistently
-    pass timezone-aware UTC datetimes (lib/data.py uses datetime.now(UTC)),
-    so this normalizes either case explicitly rather than assuming one.
+    pass timezone-aware UTC datetimes (lib/data.py uses
+    datetime.now(timezone.utc)), so this normalizes either case explicitly
+    rather than assuming one.
     """
     if dt.tzinfo is not None:
-        dt = dt.astimezone(UTC).replace(tzinfo=None)
+        dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
     return dt.isoformat() + "Z"
 
 _GRANULARITY_MAP: dict[Timeframe, str] = {
@@ -88,7 +89,7 @@ class OandaProvider:
             candles.extend(
                 Candle(
                     time=datetime.fromisoformat(c["time"].replace("Z", "+00:00"))
-                    .astimezone(UTC)
+                    .astimezone(timezone.utc)
                     .replace(tzinfo=None),
                     open=float(c["mid"]["o"]),
                     high=float(c["mid"]["h"]),

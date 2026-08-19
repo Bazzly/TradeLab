@@ -6,3 +6,4 @@ plotly
 psycopg[binary]
 python-dotenv
 google-genai
+tzdata

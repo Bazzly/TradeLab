@@ -8,9 +8,15 @@ API calls for identical data, no cache sharing across pages at all. Routing
 every page through these same two functions means the cache is now shared
 across the whole session, which matters directly for staying under free-
 tier rate limits (Twelve Data: 800 requests/day, 8/minute).
+
+Uses `timezone.utc`, not the shorter `datetime.UTC` alias — that alias was
+only added in Python 3.11, and Streamlit Community Cloud's deployed Python
+version isn't guaranteed to be that new (confirmed live: it broke the
+deployed app with an ImportError this exact alias caused). `timezone.utc`
+has worked since Python 3.2 — don't "simplify" it back.
 """
 
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pandas as pd
 import streamlit as st
@@ -23,7 +29,7 @@ from lib.schemas import Timeframe
 
 @st.cache_data(ttl=300)
 def load_candles(asset: str, timeframe: Timeframe, days: int) -> pd.DataFrame:
-    end = datetime.now(UTC)
+    end = datetime.now(timezone.utc)
     start = end - timedelta(days=days)
     candles = get_provider(asset).get_candles(asset, timeframe, start, end)
     return pd.DataFrame([c.__dict__ for c in candles])

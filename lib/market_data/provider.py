@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import Protocol
 
 from lib.schemas import Timeframe
@@ -26,8 +26,13 @@ def epoch_to_utc_naive(epoch_seconds: float) -> datetime:
     Cloud's containers default to UTC — coincidence, not correctness. Every
     provider should build Candle.time through this function, not
     datetime.fromtimestamp() directly.
+
+    Uses `timezone.utc`, not the shorter `datetime.UTC` alias (Python 3.11+
+    only) — that alias broke the deployed app outright with an ImportError,
+    since Streamlit Community Cloud's Python version isn't guaranteed to be
+    that new. `timezone.utc` has worked since Python 3.2.
     """
-    return datetime.fromtimestamp(epoch_seconds, tz=UTC).replace(tzinfo=None)
+    return datetime.fromtimestamp(epoch_seconds, tz=timezone.utc).replace(tzinfo=None)
 
 
 class MarketDataProvider(Protocol):
