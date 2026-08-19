@@ -3,6 +3,9 @@ from datetime import UTC, datetime, timedelta
 import pandas as pd
 import streamlit as st
 
+from urllib.parse import quote
+
+from lib.content.share import APP_URL, build_share_pdf, build_share_text
 from lib.data import load_joined_frame, load_orb_frame
 from lib.db.bot_trades import list_trades
 from lib.db.connection import is_configured
@@ -66,6 +69,35 @@ if closed_trades:
         )
 else:
     st.caption("No closed trades yet — the track record builds up as open trades resolve.")
+
+st.divider()
+
+# --- Share -------------------------------------------------------------------
+st.subheader("Share")
+st.caption(
+    "Every format includes the disclaimer and sample size up front — this leaves the app and "
+    "gets read with zero context, so the anti-hype rules apply here more than anywhere else, not less."
+)
+share_text = build_share_text(open_trades, closed_trades)
+
+sc1, sc2 = st.columns([3, 2])
+with sc1:
+    st.code(share_text, language=None)
+with sc2:
+    pdf_bytes = build_share_pdf(open_trades, closed_trades)
+    st.download_button(
+        "⬇️ Download PDF report",
+        data=pdf_bytes,
+        file_name=f"tradelab-bot-report-{datetime.now(UTC).strftime('%Y-%m-%d')}.pdf",
+        mime="application/pdf",
+        width="stretch",
+    )
+    encoded_text = quote(share_text)
+    encoded_url = quote(APP_URL)
+    st.link_button("Share on X", f"https://twitter.com/intent/tweet?text={encoded_text}", width="stretch")
+    st.link_button("Share on LinkedIn", f"https://www.linkedin.com/sharing/share-offsite/?url={encoded_url}", width="stretch")
+    st.link_button("Share on WhatsApp", f"https://wa.me/?text={encoded_text}", width="stretch")
+    st.link_button("Share on Telegram", f"https://t.me/share/url?url={encoded_url}&text={encoded_text}", width="stretch")
 
 st.divider()
 

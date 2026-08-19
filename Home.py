@@ -39,9 +39,11 @@ st.markdown(
       closes simulated trades across the full watchlist and all three
       setups, building a real (persisted) track record over time. Also has
       a **Readiness Board** (how close each asset is to qualifying right
-      now — rules-based state, never a prediction of what price does next)
-      and each setup's **actual backtested win-rate** per asset, sample
-      size always shown
+      now — rules-based state, never a prediction of what price does next),
+      each setup's **actual backtested win-rate** per asset (sample size
+      always shown), and a **Share** section — a copyable text summary and
+      a branded PDF report, disclaimer and sample size shown before any
+      stat in either format
 
     The Journal page also includes an **AI Trade Review** (needs a free
     Google Gemini API key) — it grades process, not outcome.
