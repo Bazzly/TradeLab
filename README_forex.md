@@ -314,6 +314,12 @@ README.md            # this file
 **Resolved (2026-08-19, discovered in production):**
 - Crypto data provider: ~~Binance public API~~ → **Coinbase Exchange public API** (Section 3.3). The deployed app failed with `451 Client Error` fetching Binance candles — Binance.com geo-blocks the US-hosted infrastructure Streamlit Community Cloud runs on. Coinbase's public candle endpoint isn't blocked there and wasn't a difficult swap since both are unauthenticated REST. Worth remembering if any *other* free API integration (OANDA, future providers) starts failing only in production and not locally — geo-blocking from the hosting region is a real, recurring risk with free public APIs and won't show up in local dev.
 
+**Progress (2026-08-19) — MVP (Section 9) complete, plus the Market Scanner pulled forward from Phase 11:**
+- All 7 MVP items shipped: Dashboard, Strategy Lab (Multi-Timeframe + Signal engines), Backtesting, Journal, Learning.
+- Market Scanner (Section 4.9, 5.5) built ahead of its Phase 11 slot since it needed no new infra — it's just the existing Signal Engine run across a watchlist. Watchlist widened from BTC/USD alone to 8 Coinbase USD pairs (BTC, ETH, SOL, XRP, ADA, DOGE, LTC, LINK) across Dashboard/Strategy Lab/Backtesting/Scanner, since testing the scanner meaningfully needs more than one asset.
+- Still blocked on user-supplied credentials: OANDA (forex data), Neon (`DATABASE_URL`, blocks Journal persistence + RLS), OIDC provider (blocks real `st.login()` — Journal currently falls back to a manually typed dev user id).
+- Everything built so far is crypto-only in practice, despite the architecture being asset-class-agnostic (`MarketDataProvider` protocol) — forex is code-complete (`lib/market_data/oanda.py`) but untested end-to-end for lack of an API key.
+
 **Still open — surface these before the relevant phase locks in:**
 - Exact free-tier vs. paid-tier feature split (which signals/backtests/analytics sit behind Stripe gating) — a product decision, needed before Section 3.4 is implemented, not before MVP.
 - Which OIDC provider backs `st.login()` (Google vs. Auth0 vs. other) — needed before Section 9 item 0 (auth wiring), not before scaffolding.

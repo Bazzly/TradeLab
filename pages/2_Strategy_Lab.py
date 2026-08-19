@@ -15,7 +15,7 @@ st.caption(
     "\"No qualifying setup\" is a normal, expected outcome — not an error."
 )
 
-ASSETS = ["BTC/USD"]
+ASSETS = ["BTC/USD", "ETH/USD", "SOL/USD", "XRP/USD", "ADA/USD", "DOGE/USD", "LTC/USD", "LINK/USD"]
 asset = st.selectbox("Asset", ASSETS)
 
 

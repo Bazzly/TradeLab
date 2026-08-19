@@ -16,7 +16,7 @@ st.caption(
     "just what the data shows."
 )
 
-ASSETS = ["BTC/USD"]  # crypto only until OANDA credentials are configured
+ASSETS = ["BTC/USD", "ETH/USD", "SOL/USD", "XRP/USD", "ADA/USD", "DOGE/USD", "LTC/USD", "LINK/USD"]  # crypto only until OANDA credentials are configured
 TIMEFRAMES: list[Timeframe] = ["15m", "1H", "4H", "1D"]
 
 col1, col2 = st.columns(2)

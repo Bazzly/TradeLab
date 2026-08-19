@@ -15,7 +15,7 @@ st.caption(
     "No survivorship bias, no cherry-picked date range — see Limitations below before drawing conclusions."
 )
 
-ASSETS = ["BTC/USD"]
+ASSETS = ["BTC/USD", "ETH/USD", "SOL/USD", "XRP/USD", "ADA/USD", "DOGE/USD", "LTC/USD", "LINK/USD"]
 c1, c2 = st.columns(2)
 asset = c1.selectbox("Asset", ASSETS)
 days = c2.slider("History (days)", min_value=30, max_value=180, value=90, step=30)

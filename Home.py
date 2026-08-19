@@ -21,6 +21,8 @@ st.markdown(
     - **Journal** — manual trade logging with a required reason for every
       entry and exit (needs a free [Neon](https://neon.tech) database to
       persist — works without one, it just can't save yet)
+    - **Scanner** — the Signal Engine run across a watchlist, ranked into
+      four fixed tiers (an empty High-Quality tier is normal, not an error)
     - **Learning** — the beginner curriculum behind the engines above
 
     See `README_forex.md` for the full build spec, architecture decisions,
