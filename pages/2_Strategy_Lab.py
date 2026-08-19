@@ -1,6 +1,7 @@
 import pandas as pd
 import streamlit as st
 
+from lib.content.share import build_signal_share_text, build_stat_card_image, render_share_section
 from lib.data import load_joined_frame, load_orb_frame
 from lib.engines.multi_timeframe import build_analysis
 from lib.engines.signal import generate_signal as generate_pullback_signal
@@ -126,3 +127,22 @@ else:
     st.markdown("**Invalidating conditions:**")
     for cond in signal.invalidating_conditions:
         st.markdown(f"- {cond}")
+
+    st.divider()
+    st.subheader("Share")
+    share_text = build_signal_share_text(asset, setup, signal)
+    card_bytes = build_stat_card_image(
+        f"{signal.direction} setup — {asset}",
+        setup,
+        [
+            ("Entry zone", f"{signal.entry_zone[0]:,.{price_decimals}f}–{signal.entry_zone[1]:,.{price_decimals}f}"),
+            ("Stop loss", f"{signal.stop_loss:,.{price_decimals}f}"),
+            ("Risk:Reward", f"{signal.risk_reward_ratio:.2f}"),
+        ],
+    )
+    render_share_section(
+        share_text,
+        image_bytes=card_bytes,
+        image_filename="tradelab-signal.png",
+        url="https://tradelab.streamlit.app/Strategy_Lab",
+    )

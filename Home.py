@@ -19,14 +19,17 @@ st.markdown(
     - **Strategy Lab** — pick between three rules-based setups (trend-aligned
       pullback, supply/demand zones + Fair Value Gaps, or an opening-range
       breakout scalp — see `bot.md`) and see whether it qualifies right now
-      ("no qualifying setup" is a normal outcome, not an error)
+      ("no qualifying setup" is a normal outcome, not an error). A
+      **Share** section appears whenever a setup qualifies
     - **Backtesting** — historical performance of any of the three setups,
-      with sample size and limitations shown up front
+      with sample size and limitations shown up front, plus an equity curve
+      and a **Share** section (text + a branded PNG card of the curve)
     - **Journal** — manual trade logging with a required reason for every
       entry and exit (needs a free [Neon](https://neon.tech) database to
       persist — works without one, it just can't save yet)
     - **Scanner** — the Signal Engine run across a watchlist, ranked into
-      four fixed tiers (an empty High-Quality tier is normal, not an error)
+      four fixed tiers (an empty High-Quality tier is normal, not an error),
+      with a **Share** section summarizing the current tier breakdown
     - **Risk** — position sizing, open exposure, daily loss limits, and
       correlation checks against your actual open Journal positions
     - **Calendar** — FOMC, ECB, and US jobs report dates, no API key needed
@@ -41,9 +44,9 @@ st.markdown(
       a **Readiness Board** (how close each asset is to qualifying right
       now — rules-based state, never a prediction of what price does next),
       each setup's **actual backtested win-rate** per asset (sample size
-      always shown), and a **Share** section — a copyable text summary and
-      a branded PDF report, disclaimer and sample size shown before any
-      stat in either format
+      always shown), and a **Share** section — a copyable text summary, a
+      branded PDF report, and a branded PNG card, disclaimer and sample
+      size shown before any stat in every format
 
     The Journal page also includes an **AI Trade Review** (needs a free
     Google Gemini API key) — it grades process, not outcome.

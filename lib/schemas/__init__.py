@@ -66,6 +66,7 @@ class StrategyPerformanceReport:
     consecutive_wins: int
     consecutive_losses: int
     monthly_performance: list[dict]
+    equity_curve: list[float]
     annualized_performance: float
     out_of_sample: bool
     walk_forward_tested: bool

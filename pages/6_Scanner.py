@@ -1,6 +1,7 @@
 import pandas as pd
 import streamlit as st
 
+from lib.content.share import build_scanner_share_text, build_stat_card_image, render_share_section
 from lib.data import load_joined_frame
 from lib.engines.scanner import scan
 from lib.market_data.registry import ALL_ASSETS
@@ -82,3 +83,29 @@ for tier, label in TIER_LABELS.items():
             )
         rows.append(row)
     st.dataframe(pd.DataFrame(rows), width="stretch")
+
+st.divider()
+st.subheader("Share")
+tier_counts = {tier: len(entries) for tier, entries in by_tier.items()}
+top_picks = [
+    {"asset": r.asset, "direction": r.signal.direction, "confidence": r.signal.confidence_score}
+    for r in by_tier["HIGH_QUALITY_SETUPS"]
+    if r.signal
+]
+share_text = build_scanner_share_text(tier_counts, top_picks)
+card_bytes = build_stat_card_image(
+    "Market Scanner",
+    f"{len(WATCHLIST)} assets scanned",
+    [
+        ("🟢 High-Quality", str(tier_counts.get("HIGH_QUALITY_SETUPS", 0))),
+        ("🟡 Watchlist", str(tier_counts.get("WATCHLIST", 0))),
+        ("⚪ Weak Setups", str(tier_counts.get("WEAK_SETUPS", 0))),
+        ("🔴 No Trade", str(tier_counts.get("NO_TRADE", 0))),
+    ],
+)
+render_share_section(
+    share_text,
+    image_bytes=card_bytes,
+    image_filename="tradelab-scan.png",
+    url="https://tradelab.streamlit.app/Scanner",
+)

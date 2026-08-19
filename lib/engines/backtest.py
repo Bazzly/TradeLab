@@ -194,6 +194,16 @@ def run_backtest(
         monthly[key] = monthly.get(key, 0.0) + t.r_multiple
     monthly_performance = [{"month": m, "pnl": pnl} for m, pnl in sorted(monthly.items())]
 
+    # Cumulative R after each closed trade, in exit order — trades are already
+    # appended to `trades` in the order the simulation resolved them, so no
+    # re-sort is needed. Starts implicitly at 0 (not stored) — the first
+    # value here is the running total *after* the first trade.
+    running = 0.0
+    equity_curve = []
+    for r in r_multiples:
+        running += r
+        equity_curve.append(running)
+
     date_range = (
         (joined["time"].iloc[0].date(), joined["time"].iloc[-1].date())
         if len(joined)
@@ -238,6 +248,7 @@ def run_backtest(
         consecutive_wins=consecutive_wins,
         consecutive_losses=consecutive_losses,
         monthly_performance=monthly_performance,
+        equity_curve=equity_curve,
         annualized_performance=annualized_performance,
         out_of_sample=False,
         walk_forward_tested=False,

@@ -1,6 +1,7 @@
 import pandas as pd
 import streamlit as st
 
+from lib.content.share import build_backtest_share_text, build_equity_curve_image, render_share_section
 from lib.data import load_joined_frame, load_orb_frame
 from lib.engines.backtest import run_backtest
 from lib.engines.signal_orb import SETUP_TYPE as ORB_SETUP_TYPE
@@ -65,6 +66,10 @@ m6.metric("Avg loss (R)", f"{report.avg_loss:.2f}")
 m7.metric("Longest win streak", report.consecutive_wins)
 m8.metric("Longest loss streak", report.consecutive_losses)
 
+if report.equity_curve:
+    st.subheader("Equity curve (cumulative R)")
+    st.line_chart(pd.DataFrame({"Cumulative R": [0.0, *report.equity_curve]}))
+
 if report.monthly_performance:
     st.subheader("Monthly performance (R)")
     monthly_df = pd.DataFrame(report.monthly_performance).set_index("month")
@@ -77,3 +82,14 @@ if report.overfitting_flags:
 
 st.subheader("Limitations")
 st.markdown(report.limitations)
+
+st.divider()
+st.subheader("Share")
+share_text = build_backtest_share_text(asset, setup, report)
+card_bytes = build_equity_curve_image(asset, setup, report)
+render_share_section(
+    share_text,
+    image_bytes=card_bytes,
+    image_filename="tradelab-backtest.png",
+    url="https://tradelab.streamlit.app/Backtesting",
+)
