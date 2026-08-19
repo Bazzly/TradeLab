@@ -1,5 +1,7 @@
 # TradeLab
 
+Live at **[tradelab.streamlit.app](https://tradelab.streamlit.app/)**.
+
 Build spec and architecture decisions live in [README_forex.md](./README_forex.md) — read that first.
 
 ## Getting Started
@@ -13,4 +15,4 @@ Crypto market data (Binance) works with no credentials. Forex data (OANDA) requi
 
 ## Deploying
 
-Push to a GitHub repo, then deploy for free at [share.streamlit.io](https://share.streamlit.io), pointing it at `Home.py`. Add the same keys from `.streamlit/secrets.toml` under the app's Settings → Secrets.
+Deployed via [share.streamlit.io](https://share.streamlit.io) at [tradelab.streamlit.app](https://tradelab.streamlit.app/), pointing at `Home.py`. Secrets are pasted into the app's Settings → Secrets (same keys as `.streamlit/secrets.toml`, but with the deployed `redirect_uri` — see the comment in `.streamlit/secrets.toml.example`).

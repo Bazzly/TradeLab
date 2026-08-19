@@ -81,7 +81,7 @@ Priorities driving these choices: **Python end-to-end** (per explicit preference
 | Layer | Decision | Why |
 |---|---|---|
 | App framework | **Streamlit** (Python), multipage app (`Home.py` + `pages/`) | Single Python codebase for UI + logic; matches the quant/pandas-native ecosystem the backtesting engine needs anyway |
-| Hosting | **Streamlit Community Cloud** (share.streamlit.io), free tier | Free hosting tied directly to a GitHub repo; zero infra to manage. Constraint: app sleeps on inactivity, ~1 CPU/1GB RAM, ephemeral filesystem (no local file storage between deploys/restarts) |
+| Hosting | **Streamlit Community Cloud** (share.streamlit.io), free tier — live at [tradelab.streamlit.app](https://tradelab.streamlit.app/) | Free hosting tied directly to a GitHub repo; zero infra to manage. Constraint: app sleeps on inactivity, ~1 CPU/1GB RAM, ephemeral filesystem (no local file storage between deploys/restarts) |
 | Database | **Neon** (serverless Postgres), free tier | Genuinely free (not a trial), real Postgres incl. Row-Level Security — needed since Streamlit's filesystem isn't persistent and Supabase is explicitly excluded |
 | Auth | **Streamlit native auth** (`st.login()` / `st.user`, OIDC) backed by a free OIDC provider (e.g. Google or Auth0 free tier) | Built into Streamlit 1.42+, no custom password handling; identity (`st.user.email`) is the tenancy key into Neon |
 | Tenancy enforcement | Postgres **Row-Level Security** on Neon, keyed on a session-scoped `app.current_user_id` setting the app sets per request | DB-enforced isolation, not just app-layer filtering (same principle as the original Supabase-RLS design, just self-managed) |
@@ -306,7 +306,7 @@ README.md            # this file
 - Payments: **Stripe**, architected for from day one, wired up once a paid feature exists to gate (Section 3.4, Section 9) — unchanged, delivery mechanism changed below.
 
 **Superseded (2026-08-19) — full pivot away from Supabase/Next.js to Python/Streamlit, per explicit request:**
-- App framework + hosting: ~~Next.js/TypeScript on Vercel~~ → **Streamlit (Python) on Streamlit Community Cloud** (Section 3.1). The already-built Next.js scaffold was moved to a sibling `forex-nextjs-backup` directory rather than deleted, in case it's wanted later.
+- App framework + hosting: ~~Next.js/TypeScript on Vercel~~ → **Streamlit (Python) on Streamlit Community Cloud** (Section 3.1). The already-built Next.js scaffold was moved to a sibling `forex-nextjs-backup` directory rather than deleted, in case it's wanted later. **Live at https://tradelab.streamlit.app/** (deployed 2026-08-19).
 - Database + auth: ~~Supabase~~ → **Neon (Postgres, free tier)** for data, **Streamlit native `st.login()`/OIDC** for auth. Multi-user tenancy is still Postgres RLS, just self-managed on Neon instead of Supabase-managed.
 - Indicators/backtesting: not deferred anymore — Python (pandas/numpy, vectorbt later) is now the MVP language, not a future upgrade.
 - Payment gating delivery: Stripe **webhooks** → Stripe **polling**, because Streamlit Community Cloud has no custom HTTP route to receive a webhook (Section 3.4).
