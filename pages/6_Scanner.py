@@ -1,11 +1,9 @@
-from datetime import UTC, datetime, timedelta
-
 import pandas as pd
 import streamlit as st
 
-from lib.engines.multi_timeframe import build_multi_timeframe_series
+from lib.data import load_joined_frame
 from lib.engines.scanner import scan
-from lib.market_data.coinbase import coinbase_provider
+from lib.market_data.registry import ALL_ASSETS
 
 st.set_page_config(page_title="TradeLab — Scanner", page_icon="🔎", layout="wide")
 
@@ -15,7 +13,7 @@ st.caption(
     "High-Quality tier is a normal, expected result — never force-filled."
 )
 
-WATCHLIST = ["BTC/USD", "ETH/USD", "SOL/USD", "XRP/USD", "ADA/USD", "DOGE/USD", "LTC/USD", "LINK/USD"]
+WATCHLIST = ALL_ASSETS
 
 TIER_LABELS = {
     "HIGH_QUALITY_SETUPS": "🟢 High-Quality Setups",
@@ -25,14 +23,12 @@ TIER_LABELS = {
 }
 
 
-@st.cache_data(ttl=300)
 def load_frame(asset: str) -> pd.DataFrame | None:
+    # load_joined_frame itself is cached (lib/data.py) and shared with every
+    # other page — this wrapper only exists to keep one bad asset from
+    # aborting the whole scan.
     try:
-        end = datetime.now(UTC)
-        start = end - timedelta(days=90)
-        candles = coinbase_provider.get_candles(asset, "1H", start, end)
-        df = pd.DataFrame([c.__dict__ for c in candles])
-        return build_multi_timeframe_series(asset, df)
+        return load_joined_frame(asset)
     except Exception:  # noqa: BLE001 — surfaced per-asset below, scan continues for the rest
         return None
 

@@ -1,11 +1,10 @@
-from datetime import UTC, datetime, timedelta
-
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+from lib.data import load_candles
 from lib.indicators import atr, rsi, sma
-from lib.market_data.coinbase import coinbase_provider
+from lib.market_data.registry import ALL_ASSETS, FOREX_ASSETS, default_asset
 from lib.schemas import Timeframe
 
 st.set_page_config(page_title="TradeLab — Dashboard", page_icon="📊", layout="wide")
@@ -16,36 +15,16 @@ st.caption(
     "just what the data shows."
 )
 
-ASSETS = ["BTC/USD", "ETH/USD", "SOL/USD", "XRP/USD", "ADA/USD", "DOGE/USD", "LTC/USD", "LINK/USD"]  # crypto only until OANDA credentials are configured
+ASSETS = ALL_ASSETS
 TIMEFRAMES: list[Timeframe] = ["15m", "1H", "4H", "1D"]
 
 col1, col2 = st.columns(2)
-asset = col1.selectbox("Asset", ASSETS)
+asset = col1.selectbox("Asset", ASSETS, index=ASSETS.index(default_asset()))
 timeframe = col2.selectbox("Timeframe", TIMEFRAMES, index=1)
 
 
-@st.cache_data(ttl=60)
-def load_candles(asset: str, timeframe: str) -> pd.DataFrame:
-    end = datetime.now(UTC)
-    start = end - timedelta(days=30)
-    candles = coinbase_provider.get_candles(asset, timeframe, start, end)
-    return pd.DataFrame(
-        [
-            {
-                "time": c.time,
-                "open": c.open,
-                "high": c.high,
-                "low": c.low,
-                "close": c.close,
-                "volume": c.volume,
-            }
-            for c in candles
-        ]
-    )
-
-
 try:
-    df = load_candles(asset, timeframe)
+    df = load_candles(asset, timeframe, days=30)
 except Exception as err:  # noqa: BLE001 — surface any provider error to the user
     st.error(f"Could not load market data: {err}")
     st.stop()
@@ -63,16 +42,21 @@ prev = df.iloc[-2] if len(df) > 1 else None
 pct_change = ((last["close"] - prev["close"]) / prev["close"] * 100) if prev is not None else None
 trend = None if pct_change is None else ("Up" if pct_change >= 0 else "Down")
 
+# Forex majors trade in the 0.6-155 range with pip-level precision that
+# matters (e.g. EUR/USD ~1.1607) — 2 decimals rounds real movement to 0.00
+# for both price and ATR. Crypto's 2 decimals is fine at its price scale.
+price_decimals = 5 if asset in FOREX_ASSETS else 2
+
 m1, m2, m3, m4, m5 = st.columns(5)
-m1.metric("Price", f"{last['close']:,.2f}")
+m1.metric("Price", f"{last['close']:,.{price_decimals}f}")
 m2.metric(
     "Change (last candle)",
     f"{pct_change:.2f}%" if pct_change is not None else "—",
     delta=trend,
 )
 m3.metric("RSI (14)", f"{last['rsi14']:.1f}" if pd.notna(last["rsi14"]) else "—")
-m4.metric("SMA (20)", f"{last['sma20']:.2f}" if pd.notna(last["sma20"]) else "—")
-m5.metric("ATR (14)", f"{last['atr14']:.2f}" if pd.notna(last["atr14"]) else "—")
+m4.metric("SMA (20)", f"{last['sma20']:.{price_decimals}f}" if pd.notna(last["sma20"]) else "—")
+m5.metric("ATR (14)", f"{last['atr14']:.{price_decimals}f}" if pd.notna(last["atr14"]) else "—")
 
 st.caption(
     "RSI: above 70 = overbought, below 30 = oversold — not a signal by itself. "

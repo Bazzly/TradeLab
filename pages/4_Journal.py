@@ -4,6 +4,7 @@ from datetime import date
 import pandas as pd
 import streamlit as st
 
+from lib.auth import get_user_id
 from lib.db.connection import is_configured
 from lib.db.journal import create_entry, delete_entry, list_entries, update_entry_exit
 from lib.engines.trade_review import is_configured as ai_review_configured
@@ -18,27 +19,9 @@ st.caption(
     "before it needs a result."
 )
 
-# --- Identity -----------------------------------------------------------
-# st.login()/st.user requires an OIDC provider configured in secrets
-# (README_forex.md Section 3.1) — until that's wired up, fall back to a
-# manually entered dev user id so the Journal itself is fully testable.
-auth_configured = "auth" in st.secrets if hasattr(st, "secrets") else False
-
-if auth_configured and st.user.is_logged_in:
-    user_id = st.user.email
-    st.sidebar.success(f"Logged in as {user_id}")
-    if st.sidebar.button("Log out"):
-        st.logout()
-else:
-    if not auth_configured:
-        st.info(
-            "Login isn't wired up yet (no OIDC provider in secrets — see "
-            "`.streamlit/secrets.toml.example`). Using a manual dev user id for now; "
-            "swap to `st.login()` once auth is configured."
-        )
-    user_id = st.sidebar.text_input("Dev user id (stand-in for login)", value="dev-user")
-    if not user_id:
-        st.stop()
+user_id = get_user_id()
+if not user_id:
+    st.stop()
 
 if not is_configured():
     st.warning(

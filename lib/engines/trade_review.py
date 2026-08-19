@@ -13,9 +13,8 @@ limitation, not hidden: the review prompt says so, and so should any UI
 that renders it.
 """
 
-import os
-
 from lib.schemas import JournalEntry
+from lib.secrets import get_secret
 
 _MODEL = "gemini-3.6-flash"
 
@@ -33,7 +32,7 @@ Rules:
 
 
 def is_configured() -> bool:
-    return bool(os.environ.get("GEMINI_API_KEY"))
+    return bool(get_secret("GEMINI_API_KEY"))
 
 
 def _build_prompt(entry: JournalEntry) -> str:
@@ -68,7 +67,7 @@ def review_trade(entry: JournalEntry) -> str:
 
     from google import genai  # imported lazily so the module loads even without the package present
 
-    client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+    client = genai.Client(api_key=get_secret("GEMINI_API_KEY"))
     response = client.models.generate_content(
         model=_MODEL,
         contents=_build_prompt(entry),

@@ -1,12 +1,13 @@
-import os
 from contextlib import contextmanager
 from typing import Iterator
 
 import psycopg
 
+from lib.secrets import get_secret
+
 
 def is_configured() -> bool:
-    return bool(os.environ.get("DATABASE_URL"))
+    return bool(get_secret("DATABASE_URL"))
 
 
 @contextmanager
@@ -16,7 +17,7 @@ def get_connection(user_id: str | None = None) -> Iterator[psycopg.Connection]:
     (see migrations/0001_init.sql) can scope queries to that user — this is
     the tenancy enforcement boundary, not application-layer filtering alone.
     """
-    dsn = os.environ.get("DATABASE_URL")
+    dsn = get_secret("DATABASE_URL")
     if not dsn:
         raise RuntimeError(
             "DATABASE_URL is not set — see .streamlit/secrets.toml.example. "

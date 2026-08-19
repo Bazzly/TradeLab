@@ -12,7 +12,11 @@ st.markdown(
     """
     Use the sidebar to navigate:
 
-    - **Dashboard** — live price, trend, and core indicators (MA, RSI, ATR)
+    - **Dashboard** — live price, trend, and core indicators (MA, RSI, ATR),
+      across crypto (works now) and the 5 major forex pairs — EUR/USD,
+      USD/JPY, GBP/USD, USD/CHF, AUD/USD (needs a free [Twelve
+      Data](https://twelvedata.com) API key; code-complete, not yet
+      live-verified)
     - **Strategy Lab** — the current multi-timeframe read and whether a
       rules-based setup qualifies right now ("no qualifying setup" is a
       normal outcome, not an error)

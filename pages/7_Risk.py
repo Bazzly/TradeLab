@@ -1,8 +1,10 @@
-from datetime import UTC, date, datetime, timedelta
+from datetime import date
 
 import pandas as pd
 import streamlit as st
 
+from lib.auth import get_user_id
+from lib.data import load_candles
 from lib.db.connection import is_configured
 from lib.db.journal import list_entries
 from lib.db.settings import UserSettings, get_settings, save_settings
@@ -13,7 +15,7 @@ from lib.engines.risk import (
     open_risk_summary,
     position_size,
 )
-from lib.market_data.coinbase import coinbase_provider
+from lib.market_data.registry import ALL_ASSETS
 
 st.set_page_config(page_title="TradeLab — Risk", page_icon="🛡️", layout="wide")
 
@@ -23,15 +25,9 @@ st.caption(
     "the rules that exist to stop you chasing an entry past your own risk plan."
 )
 
-auth_configured = "auth" in st.secrets if hasattr(st, "secrets") else False
-if auth_configured and st.user.is_logged_in:
-    user_id = st.user.email
-else:
-    if not auth_configured:
-        st.info("Login isn't wired up yet — using a manual dev user id, same as the Journal page.")
-    user_id = st.sidebar.text_input("Dev user id (stand-in for login)", value="dev-user")
-    if not user_id:
-        st.stop()
+user_id = get_user_id()
+if not user_id:
+    st.stop()
 
 if not is_configured():
     st.warning(
@@ -105,17 +101,16 @@ if is_configured():
     # --- Correlation check ---------------------------------------------------
     st.subheader("Correlation Check")
     open_assets = list(exposure.by_asset.keys())
-    watchlist = ["BTC/USD", "ETH/USD", "SOL/USD", "XRP/USD", "ADA/USD", "DOGE/USD", "LTC/USD", "LINK/USD"]
+    watchlist = ALL_ASSETS
 
-    @st.cache_data(ttl=900)
     def load_return_frames(assets: tuple[str, ...]) -> dict[str, pd.DataFrame]:
-        end = datetime.now(UTC)
-        start = end - timedelta(days=30)
+        # load_candles is cached in lib/data.py and shared with Dashboard's
+        # 1H view — same (asset, "1H", 30 days) key, so a Dashboard visit
+        # can save this page a fetch too.
         frames = {}
         for asset in assets:
             try:
-                candles = coinbase_provider.get_candles(asset, "1H", start, end)
-                frames[asset] = pd.DataFrame([c.__dict__ for c in candles])
+                frames[asset] = load_candles(asset, "1H", days=30)
             except Exception:  # noqa: BLE001
                 continue
         return frames

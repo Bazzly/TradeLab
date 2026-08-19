@@ -9,12 +9,12 @@ provider is now `lib/economic_calendar/static.py` (no API required at all).
 Requires FINNHUB_API_KEY.
 """
 
-import os
 from datetime import datetime
 
 import requests
 
 from lib.schemas import EconomicEvent, EventImpact
+from lib.secrets import get_secret
 
 _BASE_URL = "https://finnhub.io/api/v1/calendar/economic"
 
@@ -26,7 +26,7 @@ _IMPACT_MAP: dict[str, EventImpact] = {
 
 
 def get_calendar(start: datetime, end: datetime) -> list[EconomicEvent]:
-    api_key = os.environ.get("FINNHUB_API_KEY")
+    api_key = get_secret("FINNHUB_API_KEY")
     if not api_key:
         raise RuntimeError("FINNHUB_API_KEY is not set — see .streamlit/secrets.toml.example")
 

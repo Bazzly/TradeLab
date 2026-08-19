@@ -1,11 +1,9 @@
-from datetime import UTC, datetime, timedelta
-
-import pandas as pd
 import streamlit as st
 
-from lib.engines.multi_timeframe import build_analysis, build_multi_timeframe_series
+from lib.data import load_joined_frame
+from lib.engines.multi_timeframe import build_analysis
 from lib.engines.signal import generate_signal
-from lib.market_data.coinbase import coinbase_provider
+from lib.market_data.registry import ALL_ASSETS, FOREX_ASSETS, default_asset
 
 st.set_page_config(page_title="TradeLab — Strategy Lab", page_icon="🧪", layout="wide")
 
@@ -15,18 +13,8 @@ st.caption(
     "\"No qualifying setup\" is a normal, expected outcome — not an error."
 )
 
-ASSETS = ["BTC/USD", "ETH/USD", "SOL/USD", "XRP/USD", "ADA/USD", "DOGE/USD", "LTC/USD", "LINK/USD"]
-asset = st.selectbox("Asset", ASSETS)
-
-
-@st.cache_data(ttl=300)
-def load_joined_frame(asset: str) -> pd.DataFrame:
-    end = datetime.now(UTC)
-    start = end - timedelta(days=90)
-    candles = coinbase_provider.get_candles(asset, "1H", start, end)
-    df = pd.DataFrame([c.__dict__ for c in candles])
-    return build_multi_timeframe_series(asset, df)
-
+asset = st.selectbox("Asset", ALL_ASSETS, index=ALL_ASSETS.index(default_asset()))
+price_decimals = 5 if asset in FOREX_ASSETS else 2
 
 try:
     joined = load_joined_frame(asset)
@@ -62,8 +50,8 @@ if signal is None:
 else:
     st.success(f"**{signal.direction} setup found** — confidence {signal.confidence_score:.0%}")
     s1, s2, s3 = st.columns(3)
-    s1.metric("Entry zone", f"{signal.entry_zone[0]:,.2f} – {signal.entry_zone[1]:,.2f}")
-    s2.metric("Stop loss", f"{signal.stop_loss:,.2f}")
+    s1.metric("Entry zone", f"{signal.entry_zone[0]:,.{price_decimals}f} – {signal.entry_zone[1]:,.{price_decimals}f}")
+    s2.metric("Stop loss", f"{signal.stop_loss:,.{price_decimals}f}")
     s3.metric("Risk:Reward", f"{signal.risk_reward_ratio:.2f}")
 
     st.markdown("**Why:**")
@@ -79,5 +67,5 @@ else:
         st.markdown(f"- {cond}")
 
 st.caption(
-    f"Key support/resistance: {', '.join(f'{lv:,.2f}' for lv in analysis.key_support_resistance)}"
+    f"Key support/resistance: {', '.join(f'{lv:,.{price_decimals}f}' for lv in analysis.key_support_resistance)}"
 )

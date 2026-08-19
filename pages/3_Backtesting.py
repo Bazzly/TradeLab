@@ -1,11 +1,9 @@
-from datetime import UTC, datetime, timedelta
-
 import pandas as pd
 import streamlit as st
 
+from lib.data import load_joined_frame
 from lib.engines.backtest import run_backtest
-from lib.engines.multi_timeframe import build_multi_timeframe_series
-from lib.market_data.coinbase import coinbase_provider
+from lib.market_data.registry import ALL_ASSETS, default_asset
 
 st.set_page_config(page_title="TradeLab — Backtesting", page_icon="📉", layout="wide")
 
@@ -15,20 +13,9 @@ st.caption(
     "No survivorship bias, no cherry-picked date range — see Limitations below before drawing conclusions."
 )
 
-ASSETS = ["BTC/USD", "ETH/USD", "SOL/USD", "XRP/USD", "ADA/USD", "DOGE/USD", "LTC/USD", "LINK/USD"]
 c1, c2 = st.columns(2)
-asset = c1.selectbox("Asset", ASSETS)
+asset = c1.selectbox("Asset", ALL_ASSETS, index=ALL_ASSETS.index(default_asset()))
 days = c2.slider("History (days)", min_value=30, max_value=180, value=90, step=30)
-
-
-@st.cache_data(ttl=600)
-def load_joined_frame(asset: str, days: int) -> pd.DataFrame:
-    end = datetime.now(UTC)
-    start = end - timedelta(days=days)
-    candles = coinbase_provider.get_candles(asset, "1H", start, end)
-    df = pd.DataFrame([c.__dict__ for c in candles])
-    return build_multi_timeframe_series(asset, df)
-
 
 try:
     joined = load_joined_frame(asset, days)

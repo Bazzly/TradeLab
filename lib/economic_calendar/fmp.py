@@ -9,12 +9,12 @@ paid FMP plan. The default provider is `lib/economic_calendar/finnhub.py`.
 Requires FMP_API_KEY.
 """
 
-import os
 from datetime import datetime
 
 import requests
 
 from lib.schemas import EconomicEvent, EventImpact
+from lib.secrets import get_secret
 
 _BASE_URL = "https://financialmodelingprep.com/stable/economic-calendar"
 
@@ -26,7 +26,7 @@ _IMPACT_MAP: dict[str, EventImpact] = {
 
 
 def get_calendar(start: datetime, end: datetime) -> list[EconomicEvent]:
-    api_key = os.environ.get("FMP_API_KEY")
+    api_key = get_secret("FMP_API_KEY")
     if not api_key:
         raise RuntimeError("FMP_API_KEY is not set — see .streamlit/secrets.toml.example")
 
