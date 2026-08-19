@@ -1,6 +1,16 @@
 import pandas as pd
 import streamlit as st
 
+from lib.content.illustrations import (
+    candlesticks_example,
+    fvg_supply_demand_example,
+    market_structure_example,
+    orb_example,
+    risk_management_example,
+    signal_pipeline_example,
+    support_resistance_example,
+    trend_filters_example,
+)
 from lib.content.lessons import LESSONS
 from lib.data import load_candles, load_joined_frame, load_orb_frame
 from lib.engines.multi_timeframe import build_analysis
@@ -9,6 +19,17 @@ from lib.engines.signal import generate_signal as generate_pullback_signal
 from lib.engines.signal_orb import generate_signal as generate_orb_signal
 from lib.engines.signal_supply_demand import generate_signal as generate_supply_demand_signal
 from lib.market_data.registry import ALL_ASSETS, FOREX_ASSETS, default_asset
+
+ILLUSTRATIONS = {
+    "market_structure": market_structure_example,
+    "candlesticks": candlesticks_example,
+    "support_resistance": support_resistance_example,
+    "risk_management": risk_management_example,
+    "fvg_supply_demand": fvg_supply_demand_example,
+    "trend_filters": trend_filters_example,
+    "orb": orb_example,
+    "signal_pipeline": signal_pipeline_example,
+}
 
 st.set_page_config(page_title="TradeLab — Learning", page_icon="🎓", layout="wide")
 
@@ -28,6 +49,14 @@ lesson = next(lesson for lesson in LESSONS if lesson.title == selected_title)
 
 st.header(lesson.title)
 st.caption(lesson.summary)
+
+if lesson.live_example in ILLUSTRATIONS:
+    st.plotly_chart(ILLUSTRATIONS[lesson.live_example](), width="stretch", key=f"illustration_{lesson.id}")
+    st.caption(
+        "⚠️ Illustrative example — hand-built to make this one concept clear, **not real market "
+        "data**. See \"Try it live\" below for what's actually happening right now."
+    )
+
 st.markdown(lesson.body)
 
 st.divider()
