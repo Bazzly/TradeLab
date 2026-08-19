@@ -426,6 +426,11 @@ README.md            # this file
 - PDF verified structurally valid (`%PDF`/`%%EOF` markers) and visually inspected (not just "no exception") — TradeLab header, disclaimer, track record, and a real trades table all render correctly against live data.
 - Share links (X/Twitter, LinkedIn, WhatsApp, Telegram) are plain `st.link_button`s to each platform's public share-intent URL, built with `urllib.parse.quote` — no custom JS, no clipboard API, nothing that behaves differently across browsers.
 
+**Resolved (2026-08-19) — real 429 from Twelve Data on the deployed Bot page, fixed with proactive client-side rate limiting:**
+- Reported live: `429 Too Many Requests` fetching AUD/USD 15m data. Root cause, not surprising in hindsight: checking 5 forex assets × 2 timeframes (1H + 15m) × 3 setups on a cold cache can burst past Twelve Data's free-tier 8-requests/minute limit well before any of it gets cached. The bot's existing per-asset/setup try/except (Section 6.6's "degrade gracefully" already built in) meant this didn't crash the page — that one combo was just skipped for the refresh — but it would keep recurring on every cold-cache refresh.
+- Fix in `lib/market_data/twelvedata.py`: a module-level sliding-window rate limiter (`_throttle()`) that proactively paces our *own* outgoing requests to stay under 8/minute, plus a retry-with-backoff for any 429 that still gets through (e.g. another session sharing the same key). A slow page beats a failed one.
+- Verified the throttle's timing logic directly with mocked `time.monotonic`/`time.sleep` (no real 60-second waits burned on testing) — confirmed it fires exactly once at the 9th request within a rolling minute and correctly stops throttling once the window naturally clears. Also verified normal single-request usage has no added delay.
+
 **Still open — surface these before the relevant phase locks in:**
 - Exact free-tier vs. paid-tier feature split (which signals/backtests/analytics sit behind Stripe gating) — a product decision, needed before Section 3.4 is implemented, not before MVP.
 - Broker/exchange for eventual **live** (real-money) order execution, if that's ever wanted — OANDA remains a candidate for markets/residencies it does accept, but this is explicitly gated per Section 1.5/6.9 and not needed for MVP.

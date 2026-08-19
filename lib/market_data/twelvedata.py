@@ -15,6 +15,8 @@ accept, or for the Section 9 item 1 paper-trading use case it also covers
 (Twelve Data is data-only, not a broker, so it can't replace that role).
 """
 
+import time
+from collections import deque
 from datetime import datetime
 
 import requests
@@ -38,6 +40,41 @@ _BASE_URL = "https://api.twelvedata.com/time_series"
 # Binance/OANDA — see README_forex.md Section 11).
 _MAX_OUTPUT_SIZE = 5000
 
+# Free-tier limit is 8 requests/minute. Confirmed live (README_forex.md
+# Section 11): the paper trading bot checking 5 forex assets x 2
+# timeframes x 3 setups on a cold cache bursts well past that and gets a
+# real 429. Proactively throttling our own outgoing requests to stay under
+# the limit is the fix — a slow page beats a failed one (Section 6.6).
+_MAX_REQUESTS_PER_MINUTE = 8
+_WINDOW_SECONDS = 60.0
+_MAX_429_RETRIES = 3
+_request_times: deque[float] = deque()
+
+
+def _throttle() -> None:
+    now = time.monotonic()
+    while _request_times and now - _request_times[0] > _WINDOW_SECONDS:
+        _request_times.popleft()
+    if len(_request_times) >= _MAX_REQUESTS_PER_MINUTE:
+        sleep_for = _WINDOW_SECONDS - (now - _request_times[0]) + 0.5
+        if sleep_for > 0:
+            time.sleep(sleep_for)
+    _request_times.append(time.monotonic())
+
+
+def _get_with_rate_limit(url: str, params: dict) -> requests.Response:
+    for attempt in range(_MAX_429_RETRIES):
+        _throttle()
+        res = requests.get(url, params=params, timeout=10)
+        if res.status_code == 429 and attempt < _MAX_429_RETRIES - 1:
+            # Server-side limit hit anyway (e.g. another process/session
+            # sharing the same key) — back off harder than our own window
+            # and retry rather than surface a failure for one bad request.
+            time.sleep(_WINDOW_SECONDS)
+            continue
+        return res
+    return res
+
 
 def is_configured() -> bool:
     return bool(get_secret("TWELVEDATA_API_KEY"))
@@ -53,7 +90,7 @@ class TwelveDataProvider:
         if not api_key:
             raise RuntimeError("TWELVEDATA_API_KEY is not set — see .streamlit/secrets.toml.example")
 
-        res = requests.get(
+        res = _get_with_rate_limit(
             _BASE_URL,
             params={
                 "symbol": asset,
@@ -70,7 +107,6 @@ class TwelveDataProvider:
                 "timezone": "UTC",
                 "apikey": api_key,
             },
-            timeout=10,
         )
         res.raise_for_status()
         body = res.json()
