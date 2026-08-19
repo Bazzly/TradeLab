@@ -6,6 +6,8 @@ import streamlit as st
 
 from lib.db.connection import is_configured
 from lib.db.journal import create_entry, delete_entry, list_entries, update_entry_exit
+from lib.engines.trade_review import is_configured as ai_review_configured
+from lib.engines.trade_review import review_trade
 from lib.schemas import JournalEntry
 
 st.set_page_config(page_title="TradeLab — Journal", page_icon="📓", layout="wide")
@@ -159,3 +161,26 @@ else:
                         st.cache_data.clear()
                     except Exception as err:  # noqa: BLE001
                         st.error(f"Could not close trade: {err}")
+
+    closed_entries = [e for e in entries if e.result in ("WIN", "LOSS", "BREAKEVEN")]
+    if closed_entries:
+        st.subheader("AI Trade Review")
+        st.caption(
+            "Grades process, not outcome — a losing trade that followed the plan is a good "
+            "process; a winning trade that ignored the plan got lucky, not right."
+        )
+        if not ai_review_configured():
+            st.info(
+                "`GEMINI_API_KEY` isn't set (see `.streamlit/secrets.toml.example`) — create a free "
+                "[Google AI Studio](https://aistudio.google.com/apikey) key to enable AI review."
+            )
+        else:
+            labels = [f"{e.date} {e.asset} {e.direction} — {e.result}" for e in closed_entries]
+            idx = st.selectbox("Closed trade to review", range(len(labels)), format_func=lambda i: labels[i])
+            if st.button("Get AI review"):
+                with st.spinner("Reviewing..."):
+                    try:
+                        review = review_trade(closed_entries[idx])
+                        st.markdown(review)
+                    except Exception as err:  # noqa: BLE001
+                        st.error(f"Could not get review: {err}")

@@ -23,7 +23,14 @@ st.markdown(
       persist — works without one, it just can't save yet)
     - **Scanner** — the Signal Engine run across a watchlist, ranked into
       four fixed tiers (an empty High-Quality tier is normal, not an error)
+    - **Risk** — position sizing, open exposure, daily loss limits, and
+      correlation checks against your actual open Journal positions
+    - **Calendar** — upcoming high-impact macro events (needs a free
+      Financial Modeling Prep API key)
     - **Learning** — the beginner curriculum behind the engines above
+
+    The Journal page also includes an **AI Trade Review** (needs a free
+    Google Gemini API key) — it grades process, not outcome.
 
     See `README_forex.md` for the full build spec, architecture decisions,
     and the anti-hype rules that govern every feature in this app.

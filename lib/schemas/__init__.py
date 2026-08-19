@@ -109,3 +109,17 @@ class Subscription:
     stripe_subscription_id: str | None = None
     price_id: str | None = None
     current_period_end: datetime | None = None
+
+
+EventImpact = Literal["LOW", "MEDIUM", "HIGH"]
+
+
+@dataclass
+class EconomicEvent:
+    date: datetime
+    country: str
+    event: str
+    impact: EventImpact
+    actual: str | None = None
+    forecast: str | None = None
+    previous: str | None = None

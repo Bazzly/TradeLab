@@ -5,3 +5,4 @@ requests
 plotly
 psycopg[binary]
 python-dotenv
+google-genai
