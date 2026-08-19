@@ -16,6 +16,7 @@ from datetime import timedelta
 import numpy as np
 import pandas as pd
 
+from lib.engines.zones import compute_zone_columns
 from lib.indicators import atr, rsi, sma
 from lib.schemas import ConfirmationLevel, MultiTimeframeAnalysis
 
@@ -82,6 +83,12 @@ def compute_frame(candles: pd.DataFrame) -> pd.DataFrame:
         default="HIGH",
     )
     df.loc[df["atr14"].isna(), "volatility"] = "UNKNOWN"
+
+    # Supply/Demand + FVG setup columns (bot.md, lib/engines/zones.py) —
+    # computed here too so build_multi_timeframe_series's join gives every
+    # setup type the same base frame, one source of truth per README_forex.md
+    # Section 3.2's "never duplicate fetch logic" rule.
+    df = compute_zone_columns(df)
 
     return df
 

@@ -7,6 +7,10 @@ __pycache__/
 # Streamlit secrets (never commit real credentials)
 .streamlit/secrets.toml
 
+# Third-party source material (e.g. pasted video transcripts) — kept local
+# only, not published into the repo
+botguid.md
+
 # OS
 .DS_Store
 

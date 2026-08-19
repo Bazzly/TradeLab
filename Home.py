@@ -13,14 +13,14 @@ st.markdown(
     Use the sidebar to navigate:
 
     - **Dashboard** — live price, trend, and core indicators (MA, RSI, ATR),
-      across crypto (works now) and the 5 major forex pairs — EUR/USD,
-      USD/JPY, GBP/USD, USD/CHF, AUD/USD (needs a free [Twelve
-      Data](https://twelvedata.com) API key; code-complete, not yet
-      live-verified)
-    - **Strategy Lab** — the current multi-timeframe read and whether a
-      rules-based setup qualifies right now ("no qualifying setup" is a
-      normal outcome, not an error)
-    - **Backtesting** — historical performance of that same setup, with
+      across crypto and the 5 major forex pairs — EUR/USD, USD/JPY,
+      GBP/USD, USD/CHF, AUD/USD (needs a free [Twelve
+      Data](https://twelvedata.com) API key)
+    - **Strategy Lab** — pick between two rules-based setups (trend-aligned
+      pullback, or supply/demand zones + Fair Value Gaps — see `bot.md`)
+      and see whether either qualifies right now ("no qualifying setup" is
+      a normal outcome, not an error)
+    - **Backtesting** — historical performance of either setup, with
       sample size and limitations shown up front
     - **Journal** — manual trade logging with a required reason for every
       entry and exit (needs a free [Neon](https://neon.tech) database to

@@ -3,23 +3,33 @@ import streamlit as st
 
 from lib.data import load_joined_frame
 from lib.engines.backtest import run_backtest
+from lib.engines.signal_supply_demand import SETUP_TYPE as SUPPLY_DEMAND_SETUP_TYPE
+from lib.engines.signal_supply_demand import generate_signal as generate_supply_demand_signal
 from lib.market_data.registry import ALL_ASSETS, default_asset
 
 st.set_page_config(page_title="TradeLab — Backtesting", page_icon="📉", layout="wide")
 
 st.title("Backtesting")
 st.caption(
-    "Historical performance of the trend-aligned pullback setup. "
     "No survivorship bias, no cherry-picked date range — see Limitations below before drawing conclusions."
 )
 
-c1, c2 = st.columns(2)
+c1, c2, c3 = st.columns(3)
 asset = c1.selectbox("Asset", ALL_ASSETS, index=ALL_ASSETS.index(default_asset()))
-days = c2.slider("History (days)", min_value=30, max_value=180, value=90, step=30)
+setup = c2.selectbox("Setup", ["Trend-Aligned Pullback", "Supply & Demand + FVG"])
+days = c3.slider("History (days)", min_value=30, max_value=180, value=90, step=30)
 
 try:
     joined = load_joined_frame(asset, days)
-    report = run_backtest(asset, joined, "1H")
+    if setup == "Trend-Aligned Pullback":
+        report = run_backtest(asset, joined, "1H")
+    else:
+        def supply_demand_signal_fn(asset, timeframe, row):
+            return generate_supply_demand_signal(asset, timeframe, row, higher_tf="1D", intermediate_tf="4H")
+
+        report = run_backtest(
+            asset, joined, "1H", signal_fn=supply_demand_signal_fn, setup_type=SUPPLY_DEMAND_SETUP_TYPE
+        )
 except Exception as err:  # noqa: BLE001
     st.error(f"Backtest failed: {err}")
     st.stop()

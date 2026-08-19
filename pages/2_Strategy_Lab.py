@@ -1,19 +1,22 @@
+import pandas as pd
 import streamlit as st
 
 from lib.data import load_joined_frame
 from lib.engines.multi_timeframe import build_analysis
-from lib.engines.signal import generate_signal
+from lib.engines.signal import generate_signal as generate_pullback_signal
+from lib.engines.signal_supply_demand import generate_signal as generate_supply_demand_signal
 from lib.market_data.registry import ALL_ASSETS, FOREX_ASSETS, default_asset
 
 st.set_page_config(page_title="TradeLab — Strategy Lab", page_icon="🧪", layout="wide")
 
 st.title("Strategy Lab")
 st.caption(
-    "One rules-based setup: trend-aligned pullback to support/resistance. "
-    "\"No qualifying setup\" is a normal, expected outcome — not an error."
+    "\"No qualifying setup\" is a normal, expected outcome for either setup below — not an error."
 )
 
-asset = st.selectbox("Asset", ALL_ASSETS, index=ALL_ASSETS.index(default_asset()))
+c1, c2 = st.columns(2)
+asset = c1.selectbox("Asset", ALL_ASSETS, index=ALL_ASSETS.index(default_asset()))
+setup = c2.selectbox("Setup", ["Trend-Aligned Pullback", "Supply & Demand + FVG"])
 price_decimals = 5 if asset in FOREX_ASSETS else 2
 
 try:
@@ -22,29 +25,56 @@ except Exception as err:  # noqa: BLE001
     st.error(f"Could not load market data: {err}")
     st.stop()
 
-analysis = build_analysis(asset, joined.iloc[-1], higher_tf="1D", intermediate_tf="4H")
+row = joined.iloc[-1]
 
-c1, c2, c3 = st.columns(3)
-c1.metric("Higher TF trend (1D)", analysis.higher_timeframe_trend)
-c2.metric("Intermediate TF trend (4H)", analysis.intermediate_trend)
-c3.metric("Lower TF structure (1H)", analysis.lower_timeframe_structure)
+if setup == "Trend-Aligned Pullback":
+    analysis = build_analysis(asset, row, higher_tf="1D", intermediate_tf="4H")
 
-c4, c5, c6 = st.columns(3)
-c4.metric("Momentum", analysis.momentum)
-c5.metric("Volatility", analysis.volatility)
-c6.metric("Confirmation level", analysis.confirmation_level)
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Higher TF trend (1D)", analysis.higher_timeframe_trend)
+    m2.metric("Intermediate TF trend (4H)", analysis.intermediate_trend)
+    m3.metric("Lower TF structure (1H)", analysis.lower_timeframe_structure)
 
-if analysis.conflicting_signals:
-    st.warning(" / ".join(analysis.conflicting_signals))
+    m4, m5, m6 = st.columns(3)
+    m4.metric("Momentum", analysis.momentum)
+    m5.metric("Volatility", analysis.volatility)
+    m6.metric("Confirmation level", analysis.confirmation_level)
+
+    if analysis.conflicting_signals:
+        st.warning(" / ".join(analysis.conflicting_signals))
+
+    st.caption(
+        f"Key support/resistance: "
+        f"{', '.join(f'{lv:,.{price_decimals}f}' for lv in analysis.key_support_resistance)}"
+    )
+
+    signal = generate_pullback_signal(asset, "1H", analysis)
+else:
+    zone = row.get("zone_direction")
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Active zone", zone or "None")
+    m2.metric("Zone has Fair Value Gap", "Yes" if row.get("zone_has_fvg") else "No")
+    ema200 = row.get("ema200")
+    if pd.isna(ema200):
+        ema_position = "Unknown (not enough history yet)"
+    else:
+        ema_position = "Above" if row["close"] > ema200 else "Below"
+    m3.metric("Price vs 200 EMA", ema_position)
+
+    m4, m5 = st.columns(2)
+    m4.metric("Higher TF trend (1D)", row.get("1d_trend", "UNKNOWN"))
+    m5.metric("Intermediate TF trend (4H)", row.get("4h_trend", "UNKNOWN"))
+
+    if zone:
+        st.caption(f"Zone range: {row['zone_low']:,.{price_decimals}f} – {row['zone_high']:,.{price_decimals}f}")
+
+    signal = generate_supply_demand_signal(asset, "1H", row, higher_tf="1D", intermediate_tf="4H")
 
 st.divider()
 
-signal = generate_signal(asset, "1H", analysis)
-
 if signal is None:
     st.info(
-        "**No qualifying setup right now.** Criteria not met "
-        "(confirmation level, risk:reward, or trend direction) — this is the expected "
+        "**No qualifying setup right now.** Criteria not met — this is the expected "
         "default state, not a bug."
     )
 else:
@@ -65,7 +95,3 @@ else:
     st.markdown("**Invalidating conditions:**")
     for cond in signal.invalidating_conditions:
         st.markdown(f"- {cond}")
-
-st.caption(
-    f"Key support/resistance: {', '.join(f'{lv:,.{price_decimals}f}' for lv in analysis.key_support_resistance)}"
-)

@@ -10,15 +10,30 @@ with knowledge of future bars (see multi_timeframe.py's module docstring).
 
 import statistics
 from dataclasses import dataclass
+from typing import Callable
 
 import pandas as pd
 
 from lib.engines.multi_timeframe import build_analysis
 from lib.engines.signal import SETUP_TYPE, generate_signal
-from lib.schemas import StrategyPerformanceReport, Timeframe
+from lib.schemas import StrategyPerformanceReport, Timeframe, TradingSignal
 
 ENTRY_EXPIRY_BARS = 20  # signal considered stale if the entry zone isn't touched within this many bars
 MAX_HOLDING_BARS = 100  # forced timeout exit if neither stop nor target is hit
+
+# A signal function takes (asset, timeframe, row) and returns a TradingSignal
+# or None — this is the seam that lets a second setup type (e.g.
+# lib.engines.signal_supply_demand) reuse this exact simulation/stats engine
+# instead of duplicating it. Defaults to the original pullback setup.
+SignalFn = Callable[[str, Timeframe, pd.Series], TradingSignal | None]
+
+
+def _pullback_signal_fn(higher_tf: str, intermediate_tf: str) -> SignalFn:
+    def fn(asset: str, timeframe: Timeframe, row: pd.Series) -> TradingSignal | None:
+        analysis = build_analysis(asset, row, higher_tf, intermediate_tf)
+        return generate_signal(asset, timeframe, analysis)
+
+    return fn
 
 
 @dataclass
@@ -33,7 +48,7 @@ class SimulatedTrade:
 
 
 def _simulate_trades(
-    asset: str, joined: pd.DataFrame, timeframe: Timeframe, higher_tf: str, intermediate_tf: str
+    asset: str, joined: pd.DataFrame, timeframe: Timeframe, signal_fn: SignalFn
 ) -> list[SimulatedTrade]:
     trades: list[SimulatedTrade] = []
     state = "SCANNING"
@@ -44,8 +59,7 @@ def _simulate_trades(
         row = joined.iloc[i]
 
         if state == "SCANNING":
-            analysis = build_analysis(asset, row, higher_tf, intermediate_tf)
-            signal = generate_signal(asset, timeframe, analysis)
+            signal = signal_fn(asset, timeframe, row)
             if signal is not None:
                 pending = (signal, i)
                 state = "WAITING_ENTRY"
@@ -145,8 +159,12 @@ def run_backtest(
     timeframe: Timeframe,
     higher_tf: str = "1D",
     intermediate_tf: str = "4H",
+    signal_fn: SignalFn | None = None,
+    setup_type: str = SETUP_TYPE,
 ) -> StrategyPerformanceReport:
-    trades = _simulate_trades(asset, joined, timeframe, higher_tf, intermediate_tf)
+    trades = _simulate_trades(
+        asset, joined, timeframe, signal_fn or _pullback_signal_fn(higher_tf, intermediate_tf)
+    )
 
     sample_size = len(trades)
     r_multiples = [t.r_multiple for t in trades]
@@ -195,7 +213,7 @@ def run_backtest(
         )
 
     limitations = (
-        f"Single-asset ({asset}), single setup type ({SETUP_TYPE}), backtest over {days_covered} days "
+        f"Single-asset ({asset}), single setup type ({setup_type}), backtest over {days_covered} days "
         f"producing {sample_size} trades. No transaction costs, spread, or slippage modeled. "
         "Support/resistance is a trailing rolling-extreme proxy, not true swing-point detection. "
         "When a stop and target both fall inside the same bar's range, the stop is conservatively assumed "
@@ -206,7 +224,7 @@ def run_backtest(
     )
 
     return StrategyPerformanceReport(
-        strategy_id=SETUP_TYPE,
+        strategy_id=setup_type,
         sample_size=sample_size,
         date_range=date_range,
         win_rate=win_rate,

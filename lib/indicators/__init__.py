@@ -6,6 +6,11 @@ def sma(close: pd.Series, period: int) -> pd.Series:
     return close.rolling(window=period).mean()
 
 
+def ema(close: pd.Series, period: int) -> pd.Series:
+    """Exponential moving average of closes over `period` candles."""
+    return close.ewm(span=period, min_periods=period, adjust=False).mean()
+
+
 def rsi(close: pd.Series, period: int = 14) -> pd.Series:
     """Wilder's RSI over `period` candles (default 14)."""
     delta = close.diff()
