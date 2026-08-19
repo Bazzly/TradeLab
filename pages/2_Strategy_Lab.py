@@ -5,7 +5,7 @@ import streamlit as st
 
 from lib.engines.multi_timeframe import build_analysis, build_multi_timeframe_series
 from lib.engines.signal import generate_signal
-from lib.market_data.binance import binance_provider
+from lib.market_data.coinbase import coinbase_provider
 
 st.set_page_config(page_title="TradeLab — Strategy Lab", page_icon="🧪", layout="wide")
 
@@ -15,7 +15,7 @@ st.caption(
     "\"No qualifying setup\" is a normal, expected outcome — not an error."
 )
 
-ASSETS = ["BTCUSDT"]
+ASSETS = ["BTC/USD"]
 asset = st.selectbox("Asset", ASSETS)
 
 
@@ -23,7 +23,7 @@ asset = st.selectbox("Asset", ASSETS)
 def load_joined_frame(asset: str) -> pd.DataFrame:
     end = datetime.now(UTC)
     start = end - timedelta(days=90)
-    candles = binance_provider.get_candles(asset, "1H", start, end)
+    candles = coinbase_provider.get_candles(asset, "1H", start, end)
     df = pd.DataFrame([c.__dict__ for c in candles])
     return build_multi_timeframe_series(asset, df)
 

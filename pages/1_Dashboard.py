@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from lib.indicators import atr, rsi, sma
-from lib.market_data.binance import binance_provider
+from lib.market_data.coinbase import coinbase_provider
 from lib.schemas import Timeframe
 
 st.set_page_config(page_title="TradeLab — Dashboard", page_icon="📊", layout="wide")
@@ -16,7 +16,7 @@ st.caption(
     "just what the data shows."
 )
 
-ASSETS = ["BTCUSDT"]  # crypto only until OANDA credentials are configured
+ASSETS = ["BTC/USD"]  # crypto only until OANDA credentials are configured
 TIMEFRAMES: list[Timeframe] = ["15m", "1H", "4H", "1D"]
 
 col1, col2 = st.columns(2)
@@ -28,7 +28,7 @@ timeframe = col2.selectbox("Timeframe", TIMEFRAMES, index=1)
 def load_candles(asset: str, timeframe: str) -> pd.DataFrame:
     end = datetime.now(UTC)
     start = end - timedelta(days=30)
-    candles = binance_provider.get_candles(asset, timeframe, start, end)
+    candles = coinbase_provider.get_candles(asset, timeframe, start, end)
     return pd.DataFrame(
         [
             {

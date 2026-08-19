@@ -105,9 +105,9 @@ Priorities driving these choices: **Python end-to-end** (per explicit preference
 | Asset class | Provider | Why |
 |---|---|---|
 | Forex (EUR/USD, GBP/USD, etc.) | **OANDA v20 REST API**, free practice/demo account | Free forex pricing + historical candles, and the same demo account doubles as the Phase 8 paper-trading broker — one integration covers both needs |
-| Crypto (BTC/USD, etc.) | **Binance public REST API** | Free, no API key required for market data, high rate limits |
+| Crypto (BTC/USD, etc.) | ~~Binance public REST API~~ → **Coinbase Exchange public REST API** (`api.exchange.coinbase.com`) | Free, no API key required. Binance.com returns HTTP 451 (geo-blocked) from Streamlit Community Cloud's US-hosted infra, discovered when the deployed app failed with that exact error — Coinbase's public candle endpoint isn't blocked there. Its granularity buckets (60/300/900/3600/21600/86400s) map cleanly onto our timeframes too. |
 
-Both are free indefinitely at MVP scale (no card required, no trial expiry). If usage later exceeds OANDA's demo/practice limits or a live-execution broker is needed, revisit per Section 11.
+Both are free indefinitely at MVP scale (no card required, no trial expiry). If usage later exceeds OANDA's demo/practice limits, Coinbase's geo-availability changes, or a live-execution broker is needed, revisit per Section 11.
 
 ### 3.4 Payment/Subscription Gating
 
@@ -251,7 +251,7 @@ For each phase, before starting: confirm objectives, required APIs/data, DB sche
 Before touching Phases 3–12 in full, ship a thin vertical slice:
 
 0. **Project scaffold**: Streamlit multipage app, Neon project (Postgres + RLS enabled), `st.login()` auth wired to a free OIDC provider, secrets via `.streamlit/secrets.toml` (local) / Streamlit Cloud secrets manager (hosted) — no Stripe integration required yet, but data models should anticipate a `subscriptions` table.
-1. **One data source per asset class** — OANDA (forex: EUR/USD, GBP/USD) + Binance (crypto: BTC/USD) — on 3 timeframes (15m, 1H, 4H, 1D).
+1. **One data source per asset class** — OANDA (forex: EUR/USD, GBP/USD) + Coinbase Exchange (crypto: BTC/USD) — on 3 timeframes (15m, 1H, 4H, 1D).
 2. **Basic dashboard**: price, % change, trend direction, 2–3 core indicators (MA, RSI, ATR) — with plain-language explanations of what each reading means.
 3. **Multi-Timeframe Analysis Engine v1**: trend/structure per timeframe + a simple confirmation-level classifier.
 4. **Rules-based Signal Engine v1**: one well-defined setup type (e.g., "trend-aligned pullback to support/resistance") with full reasoning output — no black-box scoring yet.
@@ -276,7 +276,7 @@ Home.py              # Streamlit entrypoint (landing/dashboard)
   4_Journal.py
   5_Learning.py
 /lib
-  /market_data        # MarketDataProvider protocol + OANDA + Binance adapters
+  /market_data        # MarketDataProvider protocol + OANDA + Coinbase adapters
   /indicators          # Technical analysis indicator library (pandas)
   /engines              # Multi-timeframe, signal, backtest, risk engines
   /billing              # Stripe client + polled entitlement checks
@@ -302,7 +302,7 @@ README.md            # this file
 - Backend language: Next.js/TypeScript end-to-end for MVP, Python quant service deferred until needed.
 - Hosting: Vercel (free) + Supabase (free).
 - User scope: **Multi-user**, enforced via Postgres RLS (mechanism changed 2026-08-19, see below).
-- Market data: **OANDA practice API** (forex, also doubles as Phase 8 paper-trading broker) + **Binance public API** (crypto) — unchanged.
+- Market data: **OANDA practice API** (forex, also doubles as Phase 8 paper-trading broker) + Binance public API (crypto) — crypto provider later swapped to Coinbase, see 2026-08-19 entry below.
 - Payments: **Stripe**, architected for from day one, wired up once a paid feature exists to gate (Section 3.4, Section 9) — unchanged, delivery mechanism changed below.
 
 **Superseded (2026-08-19) — full pivot away from Supabase/Next.js to Python/Streamlit, per explicit request:**
@@ -311,10 +311,13 @@ README.md            # this file
 - Indicators/backtesting: not deferred anymore — Python (pandas/numpy, vectorbt later) is now the MVP language, not a future upgrade.
 - Payment gating delivery: Stripe **webhooks** → Stripe **polling**, because Streamlit Community Cloud has no custom HTTP route to receive a webhook (Section 3.4).
 
+**Resolved (2026-08-19, discovered in production):**
+- Crypto data provider: ~~Binance public API~~ → **Coinbase Exchange public API** (Section 3.3). The deployed app failed with `451 Client Error` fetching Binance candles — Binance.com geo-blocks the US-hosted infrastructure Streamlit Community Cloud runs on. Coinbase's public candle endpoint isn't blocked there and wasn't a difficult swap since both are unauthenticated REST. Worth remembering if any *other* free API integration (OANDA, future providers) starts failing only in production and not locally — geo-blocking from the hosting region is a real, recurring risk with free public APIs and won't show up in local dev.
+
 **Still open — surface these before the relevant phase locks in:**
 - Exact free-tier vs. paid-tier feature split (which signals/backtests/analytics sit behind Stripe gating) — a product decision, needed before Section 3.4 is implemented, not before MVP.
 - Which OIDC provider backs `st.login()` (Google vs. Auth0 vs. other) — needed before Section 9 item 0 (auth wiring), not before scaffolding.
 - Broker/exchange for eventual **live** (real-money) order execution, if that's ever wanted — OANDA's live account is a natural candidate given the demo integration, but this is explicitly gated per Section 1.5/6.9 and not needed for MVP.
-- Budget ceiling if/when free tiers are outgrown (Streamlit Cloud/Neon paid tiers, OANDA/Binance rate-limit upgrades).
+- Budget ceiling if/when free tiers are outgrown (Streamlit Cloud/Neon paid tiers, OANDA/Coinbase rate-limit upgrades).
 
 An agent picking this up should treat the "Resolved" and "Superseded" lists as binding unless the user changes them again, and should still surface the "Still open" items as clarifying questions before locking in the relevant phase's architecture.

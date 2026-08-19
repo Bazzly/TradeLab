@@ -5,7 +5,7 @@ import streamlit as st
 
 from lib.engines.backtest import run_backtest
 from lib.engines.multi_timeframe import build_multi_timeframe_series
-from lib.market_data.binance import binance_provider
+from lib.market_data.coinbase import coinbase_provider
 
 st.set_page_config(page_title="TradeLab — Backtesting", page_icon="📉", layout="wide")
 
@@ -15,7 +15,7 @@ st.caption(
     "No survivorship bias, no cherry-picked date range — see Limitations below before drawing conclusions."
 )
 
-ASSETS = ["BTCUSDT"]
+ASSETS = ["BTC/USD"]
 c1, c2 = st.columns(2)
 asset = c1.selectbox("Asset", ASSETS)
 days = c2.slider("History (days)", min_value=30, max_value=180, value=90, step=30)
@@ -25,7 +25,7 @@ days = c2.slider("History (days)", min_value=30, max_value=180, value=90, step=3
 def load_joined_frame(asset: str, days: int) -> pd.DataFrame:
     end = datetime.now(UTC)
     start = end - timedelta(days=days)
-    candles = binance_provider.get_candles(asset, "1H", start, end)
+    candles = coinbase_provider.get_candles(asset, "1H", start, end)
     df = pd.DataFrame([c.__dict__ for c in candles])
     return build_multi_timeframe_series(asset, df)
 
