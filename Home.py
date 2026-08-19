@@ -35,6 +35,13 @@ st.markdown(
       both bot setups, each opening with a hand-built **animated example**
       (illustrative, not real data) plus a **live example** pulled from
       real current data and a few interactive quick-checks
+    - **Bot** — a paper trading bot that automatically opens, tracks, and
+      closes simulated trades across the full watchlist and all three
+      setups, building a real (persisted) track record over time. Also has
+      a **Readiness Board** (how close each asset is to qualifying right
+      now — rules-based state, never a prediction of what price does next)
+      and each setup's **actual backtested win-rate** per asset, sample
+      size always shown
 
     The Journal page also includes an **AI Trade Review** (needs a free
     Google Gemini API key) — it grades process, not outcome.
