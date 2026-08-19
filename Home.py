@@ -18,8 +18,10 @@ st.markdown(
       normal outcome, not an error)
     - **Backtesting** — historical performance of that same setup, with
       sample size and limitations shown up front
-    - Journal and Learning pages ship per the phased roadmap in
-      `README_forex.md`
+    - **Journal** — manual trade logging with a required reason for every
+      entry and exit (needs a free [Neon](https://neon.tech) database to
+      persist — works without one, it just can't save yet)
+    - **Learning** — the beginner curriculum behind the engines above
 
     See `README_forex.md` for the full build spec, architecture decisions,
     and the anti-hype rules that govern every feature in this app.
