@@ -3,6 +3,12 @@
 v1 scope: static beginner lessons, no persistence yet. Progress tracking
 (README_forex.md Section 4.11) is deferred until Neon is wired up — the
 Journal page's session-only pattern will extend here once it is.
+
+Each lesson can declare a `live_example` key. This module stays a pure
+content module (no streamlit/pandas dependency) — the Learning page
+(pages/5_Learning.py) is what dispatches on that key to render a live
+example pulled from the actual running engines, so a lesson's "why it
+matters" claim is demonstrated against real current data, not just asserted.
 """
 
 from dataclasses import dataclass
@@ -14,6 +20,7 @@ class Lesson:
     title: str
     summary: str
     body: str  # markdown
+    live_example: str | None = None  # key the Learning page dispatches on
 
 
 LESSONS: list[Lesson] = [
@@ -44,6 +51,7 @@ deeper pullback within the same uptrend. Structure tells you the current
 state, not the future — that's why TradeLab always shows confirmation level
 (STRONG/MODERATE/WEAK/CONFLICTING) instead of a single "trend" label.
 """,
+        live_example="market_structure",
     ),
     Lesson(
         id="candlesticks",
@@ -74,6 +82,7 @@ hammer candle appeared."
 candle might be unremarkable noise on the 1-day chart. Always read a
 candle's significance relative to the timeframe you're trading.
 """,
+        live_example="candlesticks",
     ),
     Lesson(
         id="support-resistance",
@@ -109,6 +118,7 @@ forever will eventually get run over; this is exactly why every
 TradingSignal carries `invalidatingConditions` (Section 5.2) — the
 predefined point at which the setup is simply wrong.
 """,
+        live_example="support_resistance",
     ),
     Lesson(
         id="risk-management",
@@ -150,6 +160,164 @@ strategy." That distinction is the whole point of a trading journal
 (coming in the Journal page): grading your *process*, separate from any
 single trade's outcome.
 """,
+        live_example="risk_management",
+    ),
+    Lesson(
+        id="fvg-supply-demand",
+        title="5. Fair Value Gaps & Supply/Demand Zones",
+        summary="How TradeLab's Supply & Demand setup (bot.md Setup A) actually detects a zone.",
+        body="""
+This lesson explains the first of TradeLab's two "smart money" setups —
+picked apart from a trading-education video transcript into an explicit,
+codifiable rule set (see `bot.md` if you want the full derivation).
+
+**Displacement**: a fast, aggressive multi-candle move away from a level.
+Institutional-size orders tend to move price in bursts, not smoothly — a
+displacement move is the chart's fingerprint of that. TradeLab defines it
+precisely (not just "looks big"): the 3-candle range must be at least
+**3× the 14-period ATR**, with at least 2 of the 3 candles moving the same
+direction. ATR-relative, not a fixed pip count, so the same rule applies
+whether you're looking at BTC/USD or EUR/USD.
+
+**The zone**: the *opposite-colored* candle immediately before the
+displacement. If a big bullish push just happened, the last bearish candle
+before it marks the zone — because that's the last price institutions were
+willing to buy at before pushing higher. TradeLab marks the zone from that
+candle's **body**, or its full wick-to-wick range if the body is small
+(under half an ATR) relative to that candle.
+
+**Fair Value Gap (FVG)**: a 3-candle pattern where candle 3's low sits
+above candle 1's high (for a bullish gap) — meaning nobody has traded back
+through that price yet. It's evidence the move was strong enough that even
+a brief pullback didn't happen. TradeLab **requires** an FVG within the
+displacement before it will treat a zone as valid — no FVG, no zone.
+
+**Confirmation**: price above the 200-period EMA (long) or below it
+(short), *and* the higher-timeframe trend agreeing. Both must hold before
+this ever becomes a signal.
+
+**What this is NOT**: proof that supply/demand zones have positive
+expectancy. It's one trader's discretionary method, mechanized into
+explicit rules so it can be honestly backtested — not evidence it works.
+Check the Backtesting page's sample size and limitations before believing
+anything about its edge.
+""",
+        live_example="fvg_supply_demand",
+    ),
+    Lesson(
+        id="trend-filters-ema",
+        title="6. Trend Filters: Moving Averages & the 200 EMA",
+        summary="Why TradeLab layers a slow-moving average on top of market structure.",
+        body="""
+Market structure (Lesson 1) tells you what price has *already done*. A
+moving average is a different, complementary lens: it smooths out noise
+so you can see the prevailing direction at a glance, without having to
+manually track every swing high and low.
+
+**Simple Moving Average (SMA)**: the average close over the last N
+candles, recalculated every candle. TradeLab's trend-aligned pullback
+setup compares a 20-period SMA to a 50-period SMA — price above both, with
+the 20 above the 50, defines an uptrend; the mirror image defines a
+downtrend; anything else is "sideways."
+
+**Exponential Moving Average (EMA)**: like an SMA, but weights recent
+candles more heavily. TradeLab's supply/demand and opening-range-breakout
+setups both use a **200-period EMA** as a slow, high-conviction trend
+filter — a long lookback specifically so it doesn't flip on every minor
+pullback. Price needs to be clearly on one side of it before either setup
+will treat that side as the tradeable direction.
+
+**Why layer a slow filter on top of a fast setup?** A supply/demand zone
+or a range breakout can look identical whether the broader market is
+trending or chopping sideways — the EMA200 is what tells the engine
+"trade this direction, not the other," cutting down on setups that look
+right for a few candles and then fail because they're going against the
+larger trend.
+
+**A trend filter is not a crystal ball.** Price closing above a 200 EMA
+doesn't guarantee it stays there — it's a probability tilt, one input
+among several (alongside structure, R:R, and the zone/breakout rules
+themselves), never sufficient on its own to justify a trade.
+""",
+        live_example="trend_filters",
+    ),
+    Lesson(
+        id="opening-range-breakout",
+        title="7. Opening Range Breakout",
+        summary="TradeLab's second bot strategy (bot.md Setup B) — a session-timed scalp.",
+        body="""
+Unlike the other two setups, this one is anchored to **time of day**, not
+just price action — specifically the New York session open, historically
+one of the most active windows in both forex and crypto.
+
+**The opening range**: TradeLab marks the high and low of the 15-minute
+candle covering **09:30-09:45 America/New_York** — correctly adjusted for
+Daylight Saving Time (a common bug in naive implementations; TradeLab
+verified this directly against real dates, not just assumed it). That
+range becomes the day's reference box.
+
+**Displacement breakout**: a single candle that closes *outside* the
+range with real momentum — TradeLab requires that candle's range to be at
+least **1.5× the 14-period ATR**, a lower bar than Setup A's 3× since this
+is a single-candle measure, not a 3-candle one. A weak, low-momentum poke
+outside the range doesn't count.
+
+**Entry, stop, target**: entry is a pullback to the *edge* of the range
+(not the whole zone) once a breakout has happened; the stop sits on the
+*opposite* side of the entire range — noticeably wider than Setup A's
+tight zone-based stop, which is exactly why this setup needs a bigger
+move in its favor to clear the same 1.5 minimum Risk:Reward bar. Don't be
+surprised if it qualifies less often than Setup A; that's a property of
+how the stop is defined, not a bug.
+
+**An honest limitation**: the source material described this on a
+5-minute chart; TradeLab only fetches down to 15-minute candles, so the
+opening range here is exactly one 15m candle rather than three 5m ones.
+Documented, not hidden — see `bot.md` Section 3 if you want the full
+reasoning.
+""",
+        live_example="orb",
+    ),
+    Lesson(
+        id="how-a-signal-is-built",
+        title="8. How a Signal Actually Gets Built",
+        summary="Tying it together: what happens, in order, from raw candles to a TradingSignal.",
+        body="""
+Every lesson so far covered one ingredient. This one shows the actual
+pipeline that turns them into the exact `TradingSignal` object you see on
+the Strategy Lab page — the same object, unchanged, that also drives the
+Scanner and the Backtesting engine, so what you read here is genuinely
+what runs everywhere else in the app.
+
+**1. Fetch candles.** OHLCV data for the asset/timeframe, from whichever
+provider covers that asset class (Coinbase for crypto, Twelve Data for
+forex).
+
+**2. Compute indicators.** Moving averages, RSI, ATR, and — for the two
+bot setups — displacement/zone/FVG/EMA200 columns, all computed causally
+(only ever looking backward, never at future candles you wouldn't
+actually have yet).
+
+**3. Join timeframes.** A higher timeframe's trend gets attached to every
+row of the entry timeframe, but only once that higher-timeframe candle has
+*fully closed* — using "today's" still-forming daily candle to judge an
+hourly bar would be looking into the future.
+
+**4. Check every rule.** Confirmation level, zone/FVG/breakout conditions,
+trend agreement, minimum Risk:Reward — every one of them has to pass.
+Miss any single one and the result is `None`, not a weak signal. "No
+qualifying setup" is the single most common output of this whole
+pipeline, by design.
+
+**5. Build the signal.** Only if every rule passed: entry zone, stop,
+target, R:R, a confidence score, and — critically — `reasons` and
+`confirmation_factors` that trace back to the specific rule that fired.
+Nothing in TradeLab shows you a signal without also showing you why.
+
+Use the live example below to watch this pipeline run right now, on
+whichever asset and setup you pick.
+""",
+        live_example="signal_pipeline",
     ),
 ]
 

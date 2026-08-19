@@ -31,7 +31,9 @@ st.markdown(
       correlation checks against your actual open Journal positions
     - **Calendar** — FOMC, ECB, and US jobs report dates, no API key needed
       (a static maintained list, not a full country-by-country feed)
-    - **Learning** — the beginner curriculum behind the engines above
+    - **Learning** — 8 lessons covering every engine in this app, including
+      both bot setups, each with a **live example** pulled from real
+      current data (not just described) and a few interactive quick-checks
 
     The Journal page also includes an **AI Trade Review** (needs a free
     Google Gemini API key) — it grades process, not outcome.
