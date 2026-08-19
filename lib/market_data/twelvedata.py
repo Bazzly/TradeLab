@@ -62,6 +62,12 @@ class TwelveDataProvider:
                 "end_date": end.strftime("%Y-%m-%d %H:%M:%S"),
                 "outputsize": _MAX_OUTPUT_SIZE,
                 "order": "ASC",
+                # Explicit, not relying on Twelve Data's default (documented
+                # as "Exchange" time for some endpoints) — matches the
+                # UTC-aware start/end callers pass in (lib/data.py uses
+                # datetime.now(UTC)) and the naive-but-UTC Candle.time
+                # contract (lib/market_data/provider.py).
+                "timezone": "UTC",
                 "apikey": api_key,
             },
             timeout=10,

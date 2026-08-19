@@ -1,9 +1,10 @@
 import pandas as pd
 import streamlit as st
 
-from lib.data import load_joined_frame
+from lib.data import load_joined_frame, load_orb_frame
 from lib.engines.multi_timeframe import build_analysis
 from lib.engines.signal import generate_signal as generate_pullback_signal
+from lib.engines.signal_orb import generate_signal as generate_orb_signal
 from lib.engines.signal_supply_demand import generate_signal as generate_supply_demand_signal
 from lib.market_data.registry import ALL_ASSETS, FOREX_ASSETS, default_asset
 
@@ -11,16 +12,21 @@ st.set_page_config(page_title="TradeLab — Strategy Lab", page_icon="🧪", lay
 
 st.title("Strategy Lab")
 st.caption(
-    "\"No qualifying setup\" is a normal, expected outcome for either setup below — not an error."
+    "\"No qualifying setup\" is a normal, expected outcome for every setup below — not an error."
 )
+
+SETUPS = ["Trend-Aligned Pullback", "Supply & Demand + FVG", "Opening Range Breakout"]
 
 c1, c2 = st.columns(2)
 asset = c1.selectbox("Asset", ALL_ASSETS, index=ALL_ASSETS.index(default_asset()))
-setup = c2.selectbox("Setup", ["Trend-Aligned Pullback", "Supply & Demand + FVG"])
+setup = c2.selectbox("Setup", SETUPS)
 price_decimals = 5 if asset in FOREX_ASSETS else 2
 
 try:
-    joined = load_joined_frame(asset)
+    if setup == "Opening Range Breakout":
+        joined = load_orb_frame(asset)
+    else:
+        joined = load_joined_frame(asset)
 except Exception as err:  # noqa: BLE001
     st.error(f"Could not load market data: {err}")
     st.stop()
@@ -49,7 +55,8 @@ if setup == "Trend-Aligned Pullback":
     )
 
     signal = generate_pullback_signal(asset, "1H", analysis)
-else:
+
+elif setup == "Supply & Demand + FVG":
     zone = row.get("zone_direction")
     m1, m2, m3 = st.columns(3)
     m1.metric("Active zone", zone or "None")
@@ -69,6 +76,30 @@ else:
         st.caption(f"Zone range: {row['zone_low']:,.{price_decimals}f} – {row['zone_high']:,.{price_decimals}f}")
 
     signal = generate_supply_demand_signal(asset, "1H", row, higher_tf="1D", intermediate_tf="4H")
+
+else:  # Opening Range Breakout
+    direction = row.get("orb_direction")
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Today's breakout", direction or "None yet")
+    m2.metric("Breakout has Fair Value Gap", "Yes" if row.get("orb_has_fvg") else "No")
+    ema200 = row.get("ema200")
+    if pd.isna(ema200):
+        ema_position = "Unknown (not enough history yet)"
+    else:
+        ema_position = "Above" if row["close"] > ema200 else "Below"
+    m3.metric("Price vs 200 EMA", ema_position)
+
+    m4, m5 = st.columns(2)
+    m4.metric("Higher TF trend (4H)", row.get("4h_trend", "UNKNOWN"))
+    m5.metric("Intermediate TF trend (1H)", row.get("1h_trend", "UNKNOWN"))
+
+    if pd.notna(row.get("orb_range_high")):
+        st.caption(
+            f"Today's opening range (09:30-09:45 NY): "
+            f"{row['orb_range_low']:,.{price_decimals}f} – {row['orb_range_high']:,.{price_decimals}f}"
+        )
+
+    signal = generate_orb_signal(asset, "15m", row, higher_tf="4H", intermediate_tf="1H")
 
 st.divider()
 

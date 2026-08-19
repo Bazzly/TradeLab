@@ -1,8 +1,10 @@
 import pandas as pd
 import streamlit as st
 
-from lib.data import load_joined_frame
+from lib.data import load_joined_frame, load_orb_frame
 from lib.engines.backtest import run_backtest
+from lib.engines.signal_orb import SETUP_TYPE as ORB_SETUP_TYPE
+from lib.engines.signal_orb import generate_signal as generate_orb_signal
 from lib.engines.signal_supply_demand import SETUP_TYPE as SUPPLY_DEMAND_SETUP_TYPE
 from lib.engines.signal_supply_demand import generate_signal as generate_supply_demand_signal
 from lib.market_data.registry import ALL_ASSETS, default_asset
@@ -16,20 +18,29 @@ st.caption(
 
 c1, c2, c3 = st.columns(3)
 asset = c1.selectbox("Asset", ALL_ASSETS, index=ALL_ASSETS.index(default_asset()))
-setup = c2.selectbox("Setup", ["Trend-Aligned Pullback", "Supply & Demand + FVG"])
+setup = c2.selectbox("Setup", ["Trend-Aligned Pullback", "Supply & Demand + FVG", "Opening Range Breakout"])
 days = c3.slider("History (days)", min_value=30, max_value=180, value=90, step=30)
 
 try:
-    joined = load_joined_frame(asset, days)
     if setup == "Trend-Aligned Pullback":
+        joined = load_joined_frame(asset, days)
         report = run_backtest(asset, joined, "1H")
-    else:
+    elif setup == "Supply & Demand + FVG":
+        joined = load_joined_frame(asset, days)
+
         def supply_demand_signal_fn(asset, timeframe, row):
             return generate_supply_demand_signal(asset, timeframe, row, higher_tf="1D", intermediate_tf="4H")
 
         report = run_backtest(
             asset, joined, "1H", signal_fn=supply_demand_signal_fn, setup_type=SUPPLY_DEMAND_SETUP_TYPE
         )
+    else:  # Opening Range Breakout
+        joined = load_orb_frame(asset, days)
+
+        def orb_signal_fn(asset, timeframe, row):
+            return generate_orb_signal(asset, timeframe, row, higher_tf="4H", intermediate_tf="1H")
+
+        report = run_backtest(asset, joined, "15m", signal_fn=orb_signal_fn, setup_type=ORB_SETUP_TYPE)
 except Exception as err:  # noqa: BLE001
     st.error(f"Backtest failed: {err}")
     st.stop()

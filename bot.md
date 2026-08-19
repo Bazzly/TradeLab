@@ -2,14 +2,21 @@
 
 > Companion to `README_forex.md`, which remains the source of truth for architecture, non-functional requirements, and the anti-hype rules referenced throughout this document. This file specifies **one new Signal Engine setup type** — it does not change anything else about the system.
 
-**Status (2026-08-19): Setup A implemented, live-verified, and wired into the UI.** Setup B (Opening Range Breakout) is still spec-only — deferred to keep Setup A a reviewable increment, per Section 1.3.
+**Status (2026-08-19): Both setups implemented, live-verified, and wired into the UI.**
 
+**Setup A (Supply & Demand + FVG):**
 - `lib/engines/zones.py` — displacement/zone/FVG/EMA200 detection, folded into `multi_timeframe.compute_frame()` so every setup shares one source of truth for indicator columns.
-- `lib/engines/signal_supply_demand.py` — the actual signal generator, same `TradingSignal` contract as the existing pullback setup, same "no signal unless every rule met" discipline.
-- `lib/engines/backtest.py` generalized with a `signal_fn` seam (`SignalFn` type) so both setups share the exact same trade-simulation/stats engine — no duplicated backtest logic.
-- Wired into Strategy Lab and Backtesting pages via a Setup selector.
-- **Live-verified** against real BTC/USD (124 qualifying bars / 2160, 3 completed backtest trades over 90 days) and EUR/USD (72 qualifying bars / 2160) — not just "should work."
-- Section 3's six open questions were resolved with explicit, documented defaults rather than left as guesses — see `lib/engines/zones.py`'s module docstring for exactly what was decided and why, including the one real simplification (multi-FVG confidence scaling isn't implemented, since the fixed 3-candle displacement window this version uses only ever produces a single gap to check).
+- `lib/engines/signal_supply_demand.py` — the signal generator, same `TradingSignal` contract as the existing pullback setup, same "no signal unless every rule met" discipline.
+- **Live-verified**: real BTC/USD (124 qualifying bars / 2160, 3 completed backtest trades over 90 days) and EUR/USD (72 qualifying bars / 2160).
+- Section 3's six open questions resolved with explicit, documented defaults — see `lib/engines/zones.py`'s docstring, including the one real simplification (multi-FVG confidence scaling isn't implemented, since the fixed 3-candle displacement window only ever produces a single gap to check).
+
+**Setup B (Opening Range Breakout):**
+- `lib/engines/orb.py` — NY-session opening-range detection (DST-correct via `zoneinfo`), single-candle displacement breakout, same FVG/EMA200 confirmation pattern as Setup A. `lib/engines/signal_orb.py` — the signal generator.
+- Adapted to TradeLab's supported timeframes (Section 3, questions 5-6): the source's 5-minute chart isn't one we fetch, so the opening range is a single 15m candle (09:30-09:45 NY maps exactly onto one 15m bucket) and entries/breakouts happen on 15m candles. Trend confirmation uses a 1H/4H hierarchy, not Setup A's 1H/4H/1D — a faster filter for a faster entry timeframe.
+- **Live-verified**: BTC/USD found 39 qualifying bars / 1920 over 20 days with sane entries; EUR/USD legitimately found zero over a 60-day window — traced the entire funnel (range detection → breakout → FVG → EMA200 → trend → R:R) and confirmed every stage works, it's specifically the R:R≥1.5 filter correctly rejecting setups clustered at R:R 1.16-1.41 for that window. ORB's stop spans the whole opening range (wider than Setup A's zone-based stop), so lower R:R more often is an expected property of the setup as specified, not a bug — the filter doing exactly its job.
+- Building this surfaced and fixed a real, unrelated bug that would have corrupted session-time detection: `datetime.fromtimestamp()` without an explicit `tz` silently uses the server's local timezone, not UTC, across three provider modules — see README_forex.md Section 11 for the fix.
+
+Both setups share `lib/engines/backtest.py`'s `signal_fn` seam (`SignalFn` type) — one simulation/stats engine, no duplicated backtest logic — and are wired into Strategy Lab and Backtesting via the same Setup selector. Full 9-page regression passes.
 
 ## 0. Source & an honest framing of it
 

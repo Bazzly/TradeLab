@@ -1,10 +1,23 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 import requests
 
 from lib.market_data.provider import Candle
 from lib.schemas import Timeframe
 from lib.secrets import get_secret
+
+
+def _to_oanda_timestamp(dt: datetime) -> str:
+    """OANDA wants an RFC3339 UTC string with a literal 'Z' suffix. Naively
+    appending "Z" to `dt.isoformat()` is only safe for a *naive* datetime —
+    an aware one already ends in an offset like "+00:00", producing an
+    invalid double-marked string ("...+00:00Z"). Callers now consistently
+    pass timezone-aware UTC datetimes (lib/data.py uses datetime.now(UTC)),
+    so this normalizes either case explicitly rather than assuming one.
+    """
+    if dt.tzinfo is not None:
+        dt = dt.astimezone(UTC).replace(tzinfo=None)
+    return dt.isoformat() + "Z"
 
 _GRANULARITY_MAP: dict[Timeframe, str] = {
     "15m": "M15",
@@ -63,8 +76,8 @@ class OandaProvider:
                 headers={"Authorization": f"Bearer {api_key}"},
                 params={
                     "granularity": _GRANULARITY_MAP[timeframe],
-                    "from": cursor.isoformat() + "Z",
-                    "to": chunk_end.isoformat() + "Z",
+                    "from": _to_oanda_timestamp(cursor),
+                    "to": _to_oanda_timestamp(chunk_end),
                     "price": "M",
                 },
                 timeout=10,
@@ -74,7 +87,9 @@ class OandaProvider:
 
             candles.extend(
                 Candle(
-                    time=datetime.fromisoformat(c["time"].replace("Z", "+00:00")),
+                    time=datetime.fromisoformat(c["time"].replace("Z", "+00:00"))
+                    .astimezone(UTC)
+                    .replace(tzinfo=None),
                     open=float(c["mid"]["o"]),
                     high=float(c["mid"]["h"]),
                     low=float(c["mid"]["l"]),

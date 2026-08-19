@@ -2,7 +2,7 @@ from datetime import datetime
 
 import requests
 
-from lib.market_data.provider import Candle
+from lib.market_data.provider import Candle, epoch_to_utc_naive
 from lib.schemas import Timeframe
 
 _INTERVAL_MAP: dict[Timeframe, str] = {
@@ -53,7 +53,7 @@ class BinanceProvider:
 
             candles.extend(
                 Candle(
-                    time=datetime.fromtimestamp(row[0] / 1000),
+                    time=epoch_to_utc_naive(row[0] / 1000),
                     open=float(row[1]),
                     high=float(row[2]),
                     low=float(row[3]),

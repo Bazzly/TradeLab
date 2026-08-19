@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 import requests
 
-from lib.market_data.provider import Candle
+from lib.market_data.provider import Candle, epoch_to_utc_naive
 from lib.schemas import Timeframe
 
 _GRANULARITY_SECONDS: dict[Timeframe, int] = {
@@ -48,7 +48,7 @@ class CoinbaseProvider:
 
             candles.extend(
                 Candle(
-                    time=datetime.fromtimestamp(row[0]),
+                    time=epoch_to_utc_naive(row[0]),
                     open=float(row[3]),
                     high=float(row[2]),
                     low=float(row[1]),

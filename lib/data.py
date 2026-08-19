@@ -16,6 +16,7 @@ import pandas as pd
 import streamlit as st
 
 from lib.engines.multi_timeframe import build_multi_timeframe_series
+from lib.engines.orb import build_orb_frame
 from lib.market_data.registry import get_provider
 from lib.schemas import Timeframe
 
@@ -32,3 +33,12 @@ def load_candles(asset: str, timeframe: Timeframe, days: int) -> pd.DataFrame:
 def load_joined_frame(asset: str, days: int = 90) -> pd.DataFrame:
     df = load_candles(asset, "1H", days)
     return build_multi_timeframe_series(asset, df)
+
+
+@st.cache_data(ttl=300)
+def load_orb_frame(asset: str, days: int = 60) -> pd.DataFrame:
+    """15m-based frame for the Opening Range Breakout setup (bot.md Section
+    1.2) — a separate loader since it needs a different base timeframe than
+    every other setup's 1H frame, not because it skips the shared cache."""
+    df = load_candles(asset, "15m", days)
+    return build_orb_frame(asset, df)
