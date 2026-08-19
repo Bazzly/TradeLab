@@ -25,8 +25,8 @@ st.markdown(
       four fixed tiers (an empty High-Quality tier is normal, not an error)
     - **Risk** — position sizing, open exposure, daily loss limits, and
       correlation checks against your actual open Journal positions
-    - **Calendar** — upcoming high-impact macro events (needs a free
-      Financial Modeling Prep API key)
+    - **Calendar** — FOMC, ECB, and US jobs report dates, no API key needed
+      (a static maintained list, not a full country-by-country feed)
     - **Learning** — the beginner curriculum behind the engines above
 
     The Journal page also includes an **AI Trade Review** (needs a free

@@ -1,12 +1,12 @@
-"""Economic Calendar Service (README_forex.md Section 4.10), via Financial
-Modeling Prep's economic-calendar endpoint.
+"""Economic Calendar Service (README_forex.md Section 4.10), via Finnhub's
+economic calendar endpoint.
 
-NOT usable on FMP's free tier — verified live (2026-08-19): the endpoint
-returns `402 Restricted Endpoint`, i.e. it requires a paid plan. Kept here,
-correctly pointed at FMP's current `/stable/` API (the old `/v3/` path is a
-retired legacy endpoint that also 403s), only for anyone who has or wants a
-paid FMP plan. The default provider is `lib/economic_calendar/finnhub.py`.
-Requires FMP_API_KEY.
+NOT usable on Finnhub's free tier — verified live (2026-08-19) against a
+real key: `403 "You don't have access to this resource."`. Same pattern as
+FMP (Section 11) — requiring an API key is not the same as free-tier
+inclusion. Kept here only for anyone with a paid Finnhub plan. The default
+provider is now `lib/economic_calendar/static.py` (no API required at all).
+Requires FINNHUB_API_KEY.
 """
 
 import os
@@ -16,7 +16,7 @@ import requests
 
 from lib.schemas import EconomicEvent, EventImpact
 
-_BASE_URL = "https://financialmodelingprep.com/stable/economic-calendar"
+_BASE_URL = "https://finnhub.io/api/v1/calendar/economic"
 
 _IMPACT_MAP: dict[str, EventImpact] = {
     "high": "HIGH",
@@ -26,34 +26,34 @@ _IMPACT_MAP: dict[str, EventImpact] = {
 
 
 def get_calendar(start: datetime, end: datetime) -> list[EconomicEvent]:
-    api_key = os.environ.get("FMP_API_KEY")
+    api_key = os.environ.get("FINNHUB_API_KEY")
     if not api_key:
-        raise RuntimeError("FMP_API_KEY is not set — see .streamlit/secrets.toml.example")
+        raise RuntimeError("FINNHUB_API_KEY is not set — see .streamlit/secrets.toml.example")
 
     res = requests.get(
         _BASE_URL,
         params={
             "from": start.strftime("%Y-%m-%d"),
             "to": end.strftime("%Y-%m-%d"),
-            "apikey": api_key,
+            "token": api_key,
         },
         timeout=10,
     )
     res.raise_for_status()
-    rows = res.json()
+    rows = res.json().get("economicCalendar", [])
 
     events = []
     for row in rows:
         impact_raw = str(row.get("impact") or "").strip().lower()
         events.append(
             EconomicEvent(
-                date=datetime.fromisoformat(row["date"]),
+                date=datetime.fromisoformat(row["time"]),
                 country=row.get("country", ""),
                 event=row.get("event", ""),
                 impact=_IMPACT_MAP.get(impact_raw, "LOW"),
                 actual=str(row["actual"]) if row.get("actual") is not None else None,
                 forecast=str(row["estimate"]) if row.get("estimate") is not None else None,
-                previous=str(row["previous"]) if row.get("previous") is not None else None,
+                previous=str(row["prev"]) if row.get("prev") is not None else None,
             )
         )
     return events

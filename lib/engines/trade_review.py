@@ -17,7 +17,7 @@ import os
 
 from lib.schemas import JournalEntry
 
-_MODEL = "gemini-2.5-flash"
+_MODEL = "gemini-3.6-flash"
 
 _SYSTEM_PROMPT = """You are a trading process coach, not a P&L commentator. \
 Your job is to assess whether the trader followed a sound process — not whether the trade won or lost.
