@@ -3,6 +3,13 @@
 -- app.current_user_id session setting (README_forex.md Section 3.2) — the
 -- app sets this via lib/db/connection.py per connection. RLS is the tenancy
 -- boundary, not application-layer filtering alone.
+--
+-- FORCE ROW LEVEL SECURITY is set on every such table because Postgres
+-- exempts a table's OWNER from its own RLS policies by default. This alone
+-- is NOT sufficient on Neon, though: the default `<project>_owner` role also
+-- has the BYPASSRLS attribute, which skips RLS unconditionally — FORCE or
+-- not. The app must connect as a separate, least-privileged role without
+-- BYPASSRLS; see migrations/0002_app_role.sql.
 
 create extension if not exists pgcrypto;
 
@@ -29,6 +36,7 @@ create table if not exists strategies (
   created_at timestamptz not null default now()
 );
 alter table strategies enable row level security;
+alter table strategies force row level security;
 create policy "strategies_owner_all" on strategies
   for all
   using (user_id = current_setting('app.current_user_id', true))
@@ -58,6 +66,7 @@ create table if not exists journal_entries (
   created_at timestamptz not null default now()
 );
 alter table journal_entries enable row level security;
+alter table journal_entries force row level security;
 create policy "journal_entries_owner_all" on journal_entries
   for all
   using (user_id = current_setting('app.current_user_id', true))
@@ -77,6 +86,7 @@ create table if not exists subscriptions (
   updated_at timestamptz not null default now()
 );
 alter table subscriptions enable row level security;
+alter table subscriptions force row level security;
 create policy "subscriptions_owner_read" on subscriptions
   for select
   using (user_id = current_setting('app.current_user_id', true));
